@@ -1,0 +1,12 @@
+[package]
+name = "ccs"
+version = "0.1.0"
+edition = "2021"
+license = "0BSD"
+
+[dependencies]
+anyhow = "1.0.59"
+gumdrop = "0.8.1"
+once_cell = "1.13.0"
+regex = "1.6.0"
+yansi = "0.5.1"
