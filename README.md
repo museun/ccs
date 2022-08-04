@@ -4,10 +4,11 @@
 Usage: ccs [OPTIONS]
 
 Optional arguments:
-  -h, --help
-  -n, --nightly      use nightly (default: false)
+  -h, --help         prints the help message
+  -n, --nightly      use nightly, this also enables `clippy::nursery` and `clippy::nursery` (default: false)
   -l, --line-breaks  use line breaks (default: false)
-  -w, --warn string  additional warning levels to use
+  -p, --path path    path to a specific Cargo.toml manifest. this defaults to the `cwd`
+  -w, --warn string  additional warning lints to use
 ```
 
 example:

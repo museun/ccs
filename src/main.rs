@@ -51,10 +51,6 @@ impl<'a> Command<'a> {
         Some(output)
     }
 
-    fn foo() {
-        let () = ();
-    }
-
     fn build_command(
         self,
         extra: Vec<String>,
@@ -93,7 +89,7 @@ impl<'a> Command<'a> {
             }
         }
 
-        let child = dbg!(cmd).spawn()?;
+        let child = cmd.spawn()?;
         let stderr = child.stderr.expect("stderr attached to the child process");
 
         Ok(stderr)
