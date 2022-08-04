@@ -1,21 +1,14 @@
-// #![cfg_attr(debug_assertions, allow(dead_code, unused_variables,))]
-
 use std::{
     borrow::Cow,
     ffi::OsStr,
     io::{stdout, BufRead},
+    path::PathBuf,
     process::Stdio,
 };
 
 use anyhow::Context;
 use gumdrop::Options;
-use once_cell::sync::Lazy;
 use regex::Regex;
-
-static PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(?m)(?P<path>^.*?:\d{1,}:\d{1,}):\s(?P<kind>(error\[(?P<code>E\d{1,})\]|warning)):\s(?P<message>.*?)$"#)
-        .unwrap()
-});
 
 #[derive(Debug)]
 struct Command<'a> {
@@ -58,14 +51,27 @@ impl<'a> Command<'a> {
         Some(output)
     }
 
-    fn build_command(self, extra: Vec<String>, toolchain: Toolchain) -> anyhow::Result<Vec<u8>> {
+    fn foo() {
+        let () = ();
+    }
+
+    fn build_command(
+        self,
+        extra: Vec<String>,
+        path: Option<PathBuf>,
+        toolchain: Toolchain,
+    ) -> anyhow::Result<impl std::io::Read> {
         const SHORT: &str = "--message-format=short";
 
         let cargo = Self::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
         let mut cmd = std::process::Command::new(&cargo);
-        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
 
         cmd.args([self.as_command(), SHORT]);
+        if let Some(path) = path {
+            cmd.arg("--manifest-path");
+            cmd.arg(path);
+        }
 
         let mut sep = false;
         match &*self.args {
@@ -81,10 +87,16 @@ impl<'a> Command<'a> {
             if !sep {
                 cmd.arg("--");
             }
-            cmd.args(extra);
+            for extra in extra {
+                cmd.arg("-W");
+                cmd.arg(extra);
+            }
         }
 
-        Ok(cmd.output()?.stderr)
+        let child = dbg!(cmd).spawn()?;
+        let stderr = child.stderr.expect("stderr attached to the child process");
+
+        Ok(stderr)
     }
 }
 
@@ -176,31 +188,52 @@ trait WriteExt: std::io::Write {
 
 #[derive(gumdrop::Options, Debug)]
 struct Args {
-    #[options(help_flag)]
+    #[options(help_flag, help = "prints the help message")]
     help: bool,
 
-    #[options(help = "use nightly", default = "false")]
+    #[options(
+        help = "use nightly, this also enables `clippy::nursery` and `clippy::nursery`",
+        default = "false"
+    )]
     nightly: bool,
 
     #[options(help = "use line breaks", default = "false")]
     line_breaks: bool,
 
     #[options(
+        help = "path to a specific Cargo.toml manifest. this defaults to the `cwd`",
+        meta = "path"
+    )]
+    path: Option<PathBuf>,
+
+    #[options(
         short = "w",
         long = "warn",
-        help = "additional warning levels to use",
+        help = "additional warning lints to use",
         meta = "string"
     )]
     additional: Vec<String>,
 }
 
 fn main() -> anyhow::Result<()> {
+    const PATTERN: &str = r#"(?m)(?P<path>^.*?:\d{1,}:\d{1,}):\s(?P<kind>(error\[(?P<code>E\d{1,})\]|warning)):\s(?P<message>.*?)$"#;
+
     let args = Args::parse_args_default_or_exit();
 
     // TODO disable colors via flag
     if std::env::var("NO_COLOR").is_ok() {
         yansi::Paint::disable()
     }
+
+    if let Some(path) = args.path.as_ref() {
+        // TODO try to append Cargo.toml
+        match path.components().last() {
+            Some(s) if s.as_os_str() == "Cargo.toml" => {}
+            _ => anyhow::bail!("you must provide the path to the manifest file (Cargo.toml)"),
+        }
+    }
+
+    let pattern = Regex::new(PATTERN).unwrap();
 
     let command = args
         .nightly
@@ -212,16 +245,16 @@ fn main() -> anyhow::Result<()> {
         .then_some(Toolchain::Nightly)
         .unwrap_or_default();
 
-    let child = command.build_command(args.additional, toolchain)?;
+    let child = command.build_command(args.additional, args.path, toolchain)?;
 
     let mut w = stdout();
     let mut state = State {
-        re: &PATTERN,
+        re: &pattern,
         line: 0,
         line_breaks: args.line_breaks,
     };
 
-    for line in std::io::BufReader::new(&*child).lines().flatten() {
+    for line in std::io::BufReader::new(child).lines().flatten() {
         w.format_line(&line, &mut state)?;
     }
 
