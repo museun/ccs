@@ -113,7 +113,7 @@ impl Toolchain {
 }
 
 enum LintKind {
-    Error(String),
+    Error(Option<String>),
     Warning,
 }
 
@@ -129,7 +129,12 @@ impl Line {
         let path = caps.name("path")?.as_str();
 
         let kind = match caps.name("kind")?.as_str() {
-            s if s.starts_with("error") => LintKind::Error(caps.name("code")?.as_str().to_string()),
+            s if s.starts_with("error") => caps
+                .name("code")
+                .map(|c| c.as_str().to_string())
+                .map(Some)
+                .map(LintKind::Error)
+                .unwrap_or(LintKind::Error(None)),
             "warning" => LintKind::Warning,
             s => unreachable!("unknown: {s}"),
         };
@@ -165,7 +170,8 @@ trait WriteExt: std::io::Write {
         }
 
         match line.kind {
-            LintKind::Error(code) => write!(self, "{} ", Paint::red(code)),
+            LintKind::Error(Some(code)) => write!(self, "{} ", Paint::red(code)),
+            LintKind::Error(None) => write!(self, "{} ", Paint::red("error")),
             LintKind::Warning => write!(self, "{} ", Paint::yellow("warning")),
         }?;
 
