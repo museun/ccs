@@ -1,13 +1,13 @@
 use super::*;
 
 #[derive(Debug)]
-pub struct ShortLine {
+pub struct Line {
     pub path: Path,
     pub kind: LintKind,
     pub message: Message,
 }
 
-impl Format for ShortLine {
+impl Format for Line {
     fn format(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         self.kind.format(w)?;
         self.message.format(w)?;
@@ -15,11 +15,11 @@ impl Format for ShortLine {
     }
 }
 
-pub struct ShortParser {
+pub struct Short {
     re: Regex,
 }
 
-impl ShortParser {
+impl Short {
     pub const PATTERN: &'static str = r#"(?m)(?P<path>^.*?:\d{1,}:\d{1,}):\s(?P<kind>(error\[?(?P<code>E\d{1,})?\]?|warning)):\s(?P<message>.*?)$"#;
     pub fn new() -> Self {
         Self {
@@ -28,7 +28,7 @@ impl ShortParser {
     }
 }
 
-impl Parse for ShortParser {
+impl Extract for Short {
     fn extract(&mut self, input: &str, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         macro_rules! maybe {
             ($expr:expr) => {
@@ -45,7 +45,7 @@ impl Parse for ShortParser {
         let kind = maybe!(LintKind::extract(&caps));
         let message = maybe!(caps.name("message")).as_str();
 
-        let line = ShortLine {
+        let line = Line {
             path: Path(path.to_string()),
             kind,
             message: Message(message.to_string()),

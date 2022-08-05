@@ -8,9 +8,9 @@ mod short;
 mod parts;
 use parts::*;
 
-pub use long::LongParser;
-pub use short::ShortParser;
+pub use long::Long;
+pub use short::Short;
 
-pub trait Parse {
+pub trait Extract {
     fn extract(&mut self, input: &str, w: &mut (dyn std::io::Write)) -> std::io::Result<()>;
 }

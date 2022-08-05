@@ -31,7 +31,7 @@ impl<'a> Command<'a> {
             target,
         } = opts;
 
-        let cargo = Self::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
+        let cargo = crate::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
         let mut cmd = std::process::Command::new(&cargo);
         cmd.stderr(Stdio::piped());
 
@@ -79,23 +79,6 @@ impl<'a> Command<'a> {
     const fn as_command(&self) -> &'static str {
         "clippy"
     }
-
-    fn find_cargo(toolchain: Toolchain) -> Option<String> {
-        let mut cmd = std::process::Command::new("rustup");
-        if let Some(toolchain) = toolchain.as_str() {
-            cmd.arg(toolchain);
-        }
-
-        let mut output = cmd
-            .args(["which", "cargo"])
-            .output()
-            .ok()
-            .map(|c| String::from_utf8(c.stdout))?
-            .ok()?;
-
-        output.drain(output.trim_end().len()..);
-        Some(output)
-    }
 }
 
 #[derive(Debug, Default)]
@@ -142,7 +125,7 @@ pub enum Toolchain {
 }
 
 impl Toolchain {
-    const fn as_str(self) -> Option<&'static str> {
+    pub const fn as_str(self) -> Option<&'static str> {
         if let Self::Nightly = self {
             return Some("+nightly");
         }

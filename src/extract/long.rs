@@ -1,11 +1,11 @@
 use super::*;
 
-pub struct LongParser {
+pub struct Long {
     re: Regex,
-    state: LongParserState,
+    state: State,
 }
 
-impl LongParser {
+impl Long {
     const PATTERN: &'static str = r#"(?x)
     ^(?:(?P<kind>(error\[?(?P<code>E\d{1,})?\]?|warning)):\s(?P<message>.*?))$ # error / warning
     |
@@ -24,7 +24,7 @@ impl LongParser {
     }
 }
 
-impl Parse for LongParser {
+impl Extract for Long {
     fn extract(&mut self, input: &str, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         fn update(caps: &Captures<'_>, path: &str, opt: &mut Option<String>) {
             if let Some(key) = caps.name(path) {
@@ -43,7 +43,7 @@ impl Parse for LongParser {
             }
 
             let state = std::mem::take(&mut self.state);
-            let line = LongLine {
+            let line = Line {
                 path: maybe!(state.path.map(Path)),
                 kind: maybe!(state.kind),
                 message: maybe!(state.message.map(Message)),
@@ -72,7 +72,7 @@ impl Parse for LongParser {
 }
 
 #[derive(Debug)]
-struct LongLine {
+struct Line {
     path: Path,
     kind: LintKind,
     message: Message,
@@ -81,7 +81,7 @@ struct LongLine {
     notes: Vec<Note>,
 }
 
-impl Format for LongLine {
+impl Format for Line {
     fn format(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         self.kind.format(w)?;
         self.message.format(w)?;
@@ -98,7 +98,7 @@ impl Format for LongLine {
 }
 
 #[derive(Default, Debug)]
-struct LongParserState {
+struct State {
     path: Option<String>,
     kind: Option<LintKind>,
     message: Option<String>,

@@ -5,9 +5,7 @@ use std::{
 
 use gumdrop::Options as _;
 
-use ccs::{
-    Args, Command, Extra, LongParser, Options, OutputKind, Parse, ShortParser, Target, Toolchain,
-};
+use ccs::{Args, Command, Extra, Extract, Long, Options, OutputKind, Short, Target, Toolchain};
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     match path.components().last() {
@@ -29,6 +27,10 @@ fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn is_nightly_available() -> bool {
+    ccs::find_cargo(Toolchain::Nightly).is_some()
+}
+
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
@@ -38,6 +40,11 @@ fn main() -> anyhow::Result<()> {
     if args.version {
         println!("{NAME}: {VERSION}");
         std::process::exit(0)
+    }
+
+    if args.nightly && is_nightly_available() {
+        eprintln!("rust nightly isn't installed");
+        std::process::exit(1)
     }
 
     // TODO disable colors via flag
@@ -72,36 +79,43 @@ fn main() -> anyhow::Result<()> {
         (false, false) => Target::Normal,
     };
 
+    let Args {
+        allow,
+        warning,
+        deny,
+        ..
+    } = args;
+
     let opts = Options {
         format,
         toolchain,
         extra: Extra {
-            allow: args.allow,
-            warning: args.warning,
-            deny: args.deny,
+            allow,
+            warning,
+            deny,
         },
         path: args.path,
         target,
     };
 
     let child = command.build_command(opts)?;
-
     let mut w = stdout();
 
     let (mut a, mut b);
-    let p: &mut dyn Parse = match format {
+    let p: &mut dyn Extract = match format {
         OutputKind::Human => {
-            a = LongParser::new();
+            a = Long::new();
             &mut a
         }
         OutputKind::Short => {
-            b = ShortParser::new();
+            b = Short::new();
             &mut b
         }
     };
 
-    for line in std::io::BufReader::new(child).lines().flatten() {
-        p.extract(&line, &mut w)?
-    }
-    Ok(())
+    std::io::BufReader::new(child)
+        .lines()
+        .flatten()
+        .try_for_each(|line| p.extract(&line, &mut w))
+        .map_err(Into::into)
 }
