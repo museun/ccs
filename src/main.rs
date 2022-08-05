@@ -275,9 +275,9 @@ fn main() -> anyhow::Result<()> {
         line_breaks: args.line_breaks,
     };
 
-    for line in std::io::BufReader::new(child).lines().flatten() {
-        w.format_line(&line, &mut state)?;
-    }
-
-    Ok(())
+    std::io::BufReader::new(child)
+        .lines()
+        .flatten()
+        .try_for_each(|line| w.format_line(&line, &mut state))
+        .map_err(Into::into)
 }
