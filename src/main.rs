@@ -55,6 +55,7 @@ impl<'a> Command<'a> {
         self,
         extra: Vec<String>,
         path: Option<PathBuf>,
+        tests: bool,
         toolchain: Toolchain,
     ) -> anyhow::Result<impl std::io::Read> {
         const SHORT: &str = "--message-format=short";
@@ -67,6 +68,10 @@ impl<'a> Command<'a> {
         if let Some(path) = path {
             cmd.arg("--manifest-path");
             cmd.arg(path);
+        }
+
+        if tests {
+            cmd.arg("--tests");
         }
 
         let mut sep = false;
@@ -208,6 +213,9 @@ struct Args {
     )]
     path: Option<PathBuf>,
 
+    #[options(help = "check only test targets")]
+    tests: bool,
+
     #[options(
         short = "w",
         long = "warn",
@@ -247,7 +255,7 @@ fn main() -> anyhow::Result<()> {
         .then_some(Toolchain::Nightly)
         .unwrap_or_default();
 
-    let child = command.build_command(args.additional, args.path, toolchain)?;
+    let child = command.build_command(args.additional, args.path, args.tests, toolchain)?;
 
     let mut w = stdout();
     let mut state = State {
