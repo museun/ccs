@@ -3,14 +3,22 @@
 ```
 Usage: ccs [OPTIONS]
 
+simplifies the output of cargo clippy
+
+this runs clippy and produces are smaller output
+with the `-e` flag, it'll also try to provide some context
+
 Optional arguments:
-  -h, --help         prints the help message
-  -n, --nightly      use nightly, this also enables `clippy::nursery` and `clippy::nursery` (default: false)
-  -l, --line-breaks  use line breaks (default: false)
-  -p, --path path    path to a specific Cargo.toml manifest. this defaults to the `cwd`
-  -t, --tests        check only test targets
-  -e, --explain      use the `explain` format
-  -w, --warn string  additional warning lints to use
+  -h, --help            prints the help message
+  -v, --version         prints the current version of this tool
+  -e, --explain         use the `explain` format
+  -t, --tests           check only test targets
+  -a, --all-targets     check all targets
+  -p, --path <path>     path to a specific Cargo.toml manifest. this defaults to the `cwd`
+  -W, --warn <string>   additional warning lints to use
+  -A, --allow <string>  additional allow lints to use
+  -D, --deny <string>   additional deny lints to use
+  -y, --annoying        use `clippy::all` and `clippy::nursery` (and nightly clippy) (default: false)  -n, --nightly         use nightly (default: false)
 ```
 
 example:
