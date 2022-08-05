@@ -3,15 +3,6 @@ use std::{borrow::Cow, ffi::OsStr, io::Read, path::PathBuf, process::Stdio};
 use anyhow::Context;
 
 #[derive(Debug)]
-pub struct Options {
-    pub extra: Vec<String>,
-    pub path: Option<PathBuf>,
-    pub format: OutputKind,
-    pub toolchain: Toolchain,
-    pub tests: bool,
-}
-
-#[derive(Debug)]
 pub struct Command<'a> {
     pub args: Vec<Cow<'a, OsStr>>,
 }
@@ -37,7 +28,7 @@ impl<'a> Command<'a> {
             path,
             format,
             toolchain,
-            tests,
+            target,
         } = opts;
 
         let cargo = Self::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
@@ -50,8 +41,14 @@ impl<'a> Command<'a> {
             cmd.arg(path);
         }
 
-        if tests {
-            cmd.arg("--tests");
+        match target {
+            Target::All => {
+                cmd.arg("--all-targets");
+            }
+            Target::Test => {
+                cmd.arg("--tests");
+            }
+            Target::Normal => {}
         }
 
         let mut sep = false;
@@ -64,14 +61,13 @@ impl<'a> Command<'a> {
             _ => {}
         }
 
-        if !extra.is_empty() {
-            if !sep {
-                cmd.arg("--");
-            }
-            for extra in extra {
-                cmd.arg("-W");
-                cmd.arg(extra);
-            }
+        if !extra.is_empty() && !sep {
+            cmd.arg("--");
+        }
+
+        for (key, val) in extra.as_flags() {
+            cmd.arg(key);
+            cmd.arg(val);
         }
 
         let child = cmd.spawn()?;
@@ -100,6 +96,42 @@ impl<'a> Command<'a> {
         output.drain(output.trim_end().len()..);
         Some(output)
     }
+}
+
+#[derive(Debug, Default)]
+pub struct Extra {
+    pub allow: Vec<String>,
+    pub warning: Vec<String>,
+    pub deny: Vec<String>,
+}
+
+impl Extra {
+    pub fn as_flags(&self) -> impl Iterator<Item = (&'static str, &str)> + '_ {
+        std::iter::repeat("-A")
+            .zip(self.allow.iter().map(|s| &**s))
+            .chain(std::iter::repeat("-W").zip(self.warning.iter().map(|s| &**s)))
+            .chain(std::iter::repeat("-D").zip(self.deny.iter().map(|s| &**s)))
+    }
+
+    pub fn is_empty(&self) -> bool {
+        !self.allow.is_empty() || !self.warning.is_empty() || !self.deny.is_empty()
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Target {
+    All,
+    Test,
+    Normal,
+}
+
+#[derive(Debug)]
+pub struct Options {
+    pub extra: Extra,
+    pub path: Option<PathBuf>,
+    pub format: OutputKind,
+    pub toolchain: Toolchain,
+    pub target: Target,
 }
 
 #[derive(Default, Copy, Clone, Debug)]

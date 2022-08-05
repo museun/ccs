@@ -2,7 +2,7 @@ mod args;
 pub use args::Args;
 
 mod command;
-pub use command::{Command, Options, OutputKind, Toolchain};
+pub use command::{Command, Extra, Options, OutputKind, Target, Toolchain};
 
 mod format;
 pub use format::Format;

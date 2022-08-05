@@ -5,7 +5,9 @@ use std::{
 
 use gumdrop::Options as _;
 
-use ccs::{Args, Command, LongParser, Options, OutputKind, Parse, ShortParser, Toolchain};
+use ccs::{
+    Args, Command, Extra, LongParser, Options, OutputKind, Parse, ShortParser, Target, Toolchain,
+};
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     match path.components().last() {
@@ -27,8 +29,16 @@ fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
+const NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+
 fn main() -> anyhow::Result<()> {
     let mut args = Args::parse_args_default_or_exit();
+
+    if args.version {
+        println!("{NAME}: {VERSION}");
+        std::process::exit(0)
+    }
 
     // TODO disable colors via flag
     if std::env::var("NO_COLOR").is_ok() {
@@ -56,12 +66,22 @@ fn main() -> anyhow::Result<()> {
         .then_some(OutputKind::Human)
         .unwrap_or_default();
 
+    let target = match (args.tests, args.all_targets) {
+        (.., true) => Target::All,
+        (true, false) => Target::Test,
+        (false, false) => Target::Normal,
+    };
+
     let opts = Options {
         format,
         toolchain,
-        extra: args.additional,
+        extra: Extra {
+            allow: args.allow,
+            warning: args.warning,
+            deny: args.deny,
+        },
         path: args.path,
-        tests: args.tests,
+        target,
     };
 
     let child = command.build_command(opts)?;

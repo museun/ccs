@@ -3,6 +3,7 @@ name = "ccs"
 version = "0.3.0"
 edition = "2021"
 license = "0BSD"
+repository = "https://github.com/museun/ccs"
 
 [dependencies]
 anyhow = "1.0.59"

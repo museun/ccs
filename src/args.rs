@@ -1,39 +1,48 @@
 use std::path::PathBuf;
 
 #[derive(gumdrop::Options, Debug)]
+/// simplifies the output of cargo clippy
+///
+/// this runs clippy and produces are smaller output
+/// with the `-e` flag, it'll also try to provide some context
 pub struct Args {
-    #[options(help_flag, help = "prints the help message")]
+    /// prints the help message
+    #[options(help_flag)]
     pub help: bool,
 
-    #[options(
-        help = "use `clippy::nursery` and `clippy::nursery` (and nightly clippy)",
-        default = "false"
-    )]
-    pub annoying: bool,
+    /// prints the current version of this tool
+    pub version: bool,
 
-    #[options(help = "use nightly`", default = "false")]
-    pub nightly: bool,
-
-    #[options(help = "use line breaks", default = "false")]
-    pub line_breaks: bool,
-
-    #[options(
-        help = "path to a specific Cargo.toml manifest. this defaults to the `cwd`",
-        meta = "path"
-    )]
-    pub path: Option<PathBuf>,
-
-    #[options(help = "check only test targets")]
-    pub tests: bool,
-
-    #[options(help = "use the `explain` format")]
+    /// use the `explain` format
     pub explain: bool,
 
-    #[options(
-        short = "w",
-        long = "warn",
-        help = "additional warning lints to use",
-        meta = "string"
-    )]
-    pub additional: Vec<String>,
+    /// check only test targets
+    pub tests: bool,
+
+    /// check all targets
+    pub all_targets: bool,
+
+    /// path to a specific Cargo.toml manifest. this defaults to the `cwd`
+    #[options(meta = "<path>")]
+    pub path: Option<PathBuf>,
+
+    /// additional warning lints to use
+    #[options(short = "W", long = "warn", meta = "<string>")]
+    pub warning: Vec<String>,
+
+    /// additional allow lints to use
+    #[options(short = "A", long = "allow", meta = "<string>")]
+    pub allow: Vec<String>,
+
+    /// additional deny lints to use
+    #[options(short = "D", long = "deny", meta = "<string>")]
+    pub deny: Vec<String>,
+
+    /// use `clippy::all` and `clippy::nursery` (and nightly clippy)
+    #[options(short = "y", default = "false")]
+    pub annoying: bool,
+
+    /// use nightly
+    #[options(default = "false")]
+    pub nightly: bool,
 }
