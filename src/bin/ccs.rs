@@ -39,15 +39,17 @@ fn main() -> anyhow::Result<()> {
         try_find_manifest(path)?
     }
 
-    let command = args
-        .nightly
-        .then(Command::annoying)
-        .unwrap_or_else(Command::clippy);
-
-    let toolchain = args
+    let mut toolchain = args
         .nightly
         .then_some(Toolchain::Nightly)
         .unwrap_or_default();
+
+    let command = if args.nightly {
+        toolchain = Toolchain::Nightly;
+        Command::annoying()
+    } else {
+        Command::clippy()
+    };
 
     let format = args
         .explain

@@ -6,9 +6,12 @@ pub struct Args {
     pub help: bool,
 
     #[options(
-        help = "use nightly, this also enables `clippy::nursery` and `clippy::nursery`",
+        help = "use `clippy::nursery` and `clippy::nursery` (and nightly clippy)",
         default = "false"
     )]
+    pub annoying: bool,
+
+    #[options(help = "use nightly`", default = "false")]
     pub nightly: bool,
 
     #[options(help = "use line breaks", default = "false")]
