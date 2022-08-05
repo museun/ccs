@@ -8,6 +8,8 @@ Optional arguments:
   -n, --nightly      use nightly, this also enables `clippy::nursery` and `clippy::nursery` (default: false)
   -l, --line-breaks  use line breaks (default: false)
   -p, --path path    path to a specific Cargo.toml manifest. this defaults to the `cwd`
+  -t, --tests        check only test targets
+  -e, --explain      use the `explain` format
   -w, --warn string  additional warning lints to use
 ```
 

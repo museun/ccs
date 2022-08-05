@@ -6,7 +6,7 @@ use anyhow::Context;
 pub struct Options {
     pub extra: Vec<String>,
     pub path: Option<PathBuf>,
-    pub format: Format,
+    pub format: OutputKind,
     pub toolchain: Toolchain,
     pub tests: bool,
 }
@@ -119,13 +119,13 @@ impl Toolchain {
 }
 
 #[derive(Default, Copy, Clone, Debug)]
-pub enum Format {
+pub enum OutputKind {
     Human,
     #[default]
     Short,
 }
 
-impl Format {
+impl OutputKind {
     const fn as_str(self) -> &'static str {
         match self {
             Self::Human => "--message-format=human",

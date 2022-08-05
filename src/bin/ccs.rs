@@ -3,19 +3,9 @@ use std::{
     path::PathBuf,
 };
 
-use gumdrop::Options;
-use parse::ShortParser;
-use regex::Regex;
+use gumdrop::Options as _;
 
-mod args;
-use args::Args;
-
-mod command;
-
-mod parse;
-
-mod write;
-use write::WriteExt as _;
+use ccs::{Args, Command, LongParser, Options, OutputKind, Parse, ShortParser, Toolchain};
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     match path.components().last() {
@@ -49,24 +39,22 @@ fn main() -> anyhow::Result<()> {
         try_find_manifest(path)?
     }
 
-    let pattern = Regex::new(ShortParser::PATTERN).unwrap();
-
     let command = args
         .nightly
-        .then(command::Command::annoying)
-        .unwrap_or_else(command::Command::clippy);
+        .then(Command::annoying)
+        .unwrap_or_else(Command::clippy);
 
     let toolchain = args
         .nightly
-        .then_some(command::Toolchain::Nightly)
+        .then_some(Toolchain::Nightly)
         .unwrap_or_default();
 
     let format = args
         .explain
-        .then_some(command::Format::Human)
+        .then_some(OutputKind::Human)
         .unwrap_or_default();
 
-    let opts = command::Options {
+    let opts = Options {
         format,
         toolchain,
         extra: args.additional,
@@ -77,11 +65,21 @@ fn main() -> anyhow::Result<()> {
     let child = command.build_command(opts)?;
 
     let mut w = stdout();
-    let mut state = write::State::new(&pattern, args.line_breaks);
 
-    std::io::BufReader::new(child)
-        .lines()
-        .flatten()
-        .try_for_each(|line| w.format_line(&line, &mut state))
-        .map_err(Into::into)
+    let (mut a, mut b);
+    let p: &mut dyn Parse = match format {
+        OutputKind::Human => {
+            a = LongParser::new();
+            &mut a
+        }
+        OutputKind::Short => {
+            b = ShortParser::new();
+            &mut b
+        }
+    };
+
+    for line in std::io::BufReader::new(child).lines().flatten() {
+        p.extract(&line, &mut w)?
+    }
+    Ok(())
 }
