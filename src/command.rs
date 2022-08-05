@@ -3,6 +3,15 @@ use std::{borrow::Cow, ffi::OsStr, io::Read, path::PathBuf, process::Stdio};
 use anyhow::Context;
 
 #[derive(Debug)]
+pub struct Options {
+    pub extra: Vec<String>,
+    pub path: Option<PathBuf>,
+    pub format: Format,
+    pub toolchain: Toolchain,
+    pub tests: bool,
+}
+
+#[derive(Debug)]
 pub struct Command<'a> {
     pub args: Vec<Cow<'a, OsStr>>,
 }
@@ -22,20 +31,20 @@ impl<'a> Command<'a> {
         Self { args: vec![] }
     }
 
-    pub fn build_command(
-        self,
-        extra: Vec<String>,
-        path: Option<PathBuf>,
-        tests: bool,
-        toolchain: Toolchain,
-    ) -> anyhow::Result<impl Read> {
-        const SHORT: &str = "--message-format=short";
+    pub fn build_command(self, opts: Options) -> anyhow::Result<impl Read> {
+        let Options {
+            extra,
+            path,
+            format,
+            toolchain,
+            tests,
+        } = opts;
 
         let cargo = Self::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
         let mut cmd = std::process::Command::new(&cargo);
         cmd.stderr(Stdio::piped());
 
-        cmd.args([self.as_command(), SHORT]);
+        cmd.args([self.as_command(), format.as_str()]);
         if let Some(path) = path {
             cmd.arg("--manifest-path");
             cmd.arg(path);
@@ -106,5 +115,21 @@ impl Toolchain {
             return Some("+nightly");
         }
         None
+    }
+}
+
+#[derive(Default, Copy, Clone, Debug)]
+pub enum Format {
+    Human,
+    #[default]
+    Short,
+}
+
+impl Format {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Human => "--message-format=human",
+            Self::Short => "--message-format=short",
+        }
     }
 }

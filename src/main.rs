@@ -9,11 +9,11 @@ use regex::Regex;
 mod args;
 use args::Args;
 
-use crate::write::WriteExt;
-
 mod command;
 mod parse;
+
 mod write;
+use write::WriteExt as _;
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     match path.components().last() {
@@ -60,7 +60,20 @@ fn main() -> anyhow::Result<()> {
         .then_some(command::Toolchain::Nightly)
         .unwrap_or_default();
 
-    let child = command.build_command(args.additional, args.path, args.tests, toolchain)?;
+    let format = args
+        .explain
+        .then_some(command::Format::Human)
+        .unwrap_or_default();
+
+    let opts = command::Options {
+        format,
+        toolchain,
+        extra: args.additional,
+        path: args.path,
+        tests: args.tests,
+    };
+
+    let child = command.build_command(opts)?;
 
     let mut w = stdout();
     let mut state = write::State::new(&pattern, args.line_breaks);

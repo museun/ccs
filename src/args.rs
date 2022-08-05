@@ -23,6 +23,9 @@ pub struct Args {
     #[options(help = "check only test targets")]
     pub tests: bool,
 
+    #[options(help = "use the `explain` format")]
+    pub explain: bool,
+
     #[options(
         short = "w",
         long = "warn",
