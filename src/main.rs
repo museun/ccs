@@ -228,17 +228,28 @@ struct Args {
 fn main() -> anyhow::Result<()> {
     const PATTERN: &str = r#"(?m)(?P<path>^.*?:\d{1,}:\d{1,}):\s(?P<kind>(error\[(?P<code>E\d{1,})\]|warning)):\s(?P<message>.*?)$"#;
 
-    let args = Args::parse_args_default_or_exit();
+    let mut args = Args::parse_args_default_or_exit();
 
     // TODO disable colors via flag
     if std::env::var("NO_COLOR").is_ok() {
         yansi::Paint::disable()
     }
 
-    if let Some(path) = args.path.as_ref() {
-        // TODO try to append Cargo.toml
+    if let Some(path) = args.path.as_mut() {
         match path.components().last() {
             Some(s) if s.as_os_str() == "Cargo.toml" => {}
+            Some(..) => {
+                anyhow::ensure!(path.is_dir(), "a non-manifest file was provided");
+                let tmp = path.join("Cargo.toml");
+                anyhow::ensure!(
+                    std::fs::metadata(&tmp)
+                        .ok()
+                        .filter(|c| c.is_file())
+                        .is_some(),
+                    "tried to find a Cargo.toml but couldn't find one"
+                );
+                *path = tmp
+            }
             _ => anyhow::bail!("you must provide the path to the manifest file (Cargo.toml)"),
         }
     }
