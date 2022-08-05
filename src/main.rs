@@ -4,6 +4,7 @@ use std::{
 };
 
 use gumdrop::Options;
+use parse::ShortParser;
 use regex::Regex;
 
 mod args;
@@ -48,8 +49,7 @@ fn main() -> anyhow::Result<()> {
         try_find_manifest(path)?
     }
 
-    const PATTERN: &str = r#"(?m)(?P<path>^.*?:\d{1,}:\d{1,}):\s(?P<kind>(error\[(?P<code>E\d{1,})\]|warning)):\s(?P<message>.*?)$"#;
-    let pattern = Regex::new(PATTERN).unwrap();
+    let pattern = Regex::new(ShortParser::PATTERN).unwrap();
 
     let command = args
         .nightly
