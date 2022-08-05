@@ -1,18 +1,27 @@
 use regex::Regex;
 
+pub trait Parse {
+    type Output;
+    fn extract(re: &Regex, input: &str) -> Option<Self::Output>;
+}
+
 pub enum LintKind {
     Error(Option<String>),
     Warning,
 }
 
-pub struct Line {
+pub struct ShortLine {
     pub path: String,
     pub kind: LintKind,
     pub message: String,
 }
 
-impl Line {
-    pub fn extract(re: &Regex, input: &str) -> Option<Self> {
+pub struct ShortParser;
+
+impl Parse for ShortParser {
+    type Output = ShortLine;
+
+    fn extract(re: &Regex, input: &str) -> Option<Self::Output> {
         let caps = re.captures(input)?;
         let path = caps.name("path")?.as_str();
 
@@ -29,7 +38,7 @@ impl Line {
 
         let message = caps.name("message")?.as_str();
 
-        Some(Self {
+        Some(ShortLine {
             path: path.to_string(),
             kind,
             message: message.to_string(),

@@ -1,7 +1,7 @@
 use regex::Regex;
 use yansi::Paint;
 
-use crate::parse::{Line, LintKind};
+use crate::parse::{LintKind, Parse, ShortParser};
 
 pub struct State<'a> {
     re: &'a Regex,
@@ -19,10 +19,9 @@ impl<'a> State<'a> {
     }
 }
 
-impl<T> WriteExt for T where T: std::io::Write {}
 pub trait WriteExt: std::io::Write {
     fn format_line(&mut self, line: &str, state: &mut State) -> std::io::Result<()> {
-        let line = match Line::extract(state.re, line) {
+        let line = match ShortParser::extract(state.re, line) {
             Some(line) => line,
             None => return Ok(()),
         };
@@ -49,3 +48,5 @@ pub trait WriteExt: std::io::Write {
         Ok(())
     }
 }
+
+impl<T> WriteExt for T where T: std::io::Write {}
