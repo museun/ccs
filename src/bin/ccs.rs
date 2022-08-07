@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
         std::process::exit(0)
     }
 
-    if args.nightly && is_nightly_available() {
+    if args.nightly && !is_nightly_available() {
         eprintln!("rust nightly isn't installed");
         std::process::exit(1)
     }
