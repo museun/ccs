@@ -5,7 +5,9 @@ use std::{
 
 use gumdrop::Options as _;
 
-use ccs::{Args, Command, Extra, Extract, Long, Options, OutputKind, Short, Target, Toolchain};
+use ccs::{
+    Args, Command, Extra, Extract, Features, Long, Options, OutputKind, Short, Target, Toolchain,
+};
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
     match path.components().last() {
@@ -73,16 +75,27 @@ fn main() -> anyhow::Result<()> {
         .then_some(OutputKind::Human)
         .unwrap_or_default();
 
-    let target = match (args.tests, args.all_targets) {
+    let mut target = match (args.tests, args.all_targets) {
         (.., true) => Target::All,
         (true, false) => Target::Test,
-        (false, false) => Target::Normal,
+        (false, false) => Target::Default,
+    };
+
+    if !args.target.is_empty() {
+        target = Target::Specific(std::mem::take(&mut args.target))
+    }
+
+    let features = match (args.all_features, &*args.feature) {
+        (true, ..) => Features::All,
+        (false, []) => Features::Default,
+        _ => Features::Specific(std::mem::take(&mut args.feature)),
     };
 
     let Args {
         allow,
         warning,
         deny,
+        dry_run,
         ..
     } = args;
 
@@ -96,6 +109,8 @@ fn main() -> anyhow::Result<()> {
         },
         path: args.path,
         target,
+        features,
+        dry_run,
     };
 
     let child = command.build_command(opts)?;

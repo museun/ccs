@@ -29,6 +29,8 @@ impl<'a> Command<'a> {
             format,
             toolchain,
             target,
+            features,
+            dry_run,
         } = opts;
 
         let cargo = crate::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
@@ -48,7 +50,26 @@ impl<'a> Command<'a> {
             Target::Test => {
                 cmd.arg("--tests");
             }
-            Target::Normal => {}
+            Target::Specific(targets) => {
+                for target in targets {
+                    cmd.arg("--target").arg(target);
+                }
+            }
+
+            Target::Default => {}
+        }
+
+        match features {
+            Features::All => {
+                cmd.arg("--all-features");
+            }
+            Features::Specific(features) => {
+                for feature in features {
+                    cmd.arg("--feature").arg(feature);
+                }
+            }
+
+            Features::Default => {}
         }
 
         let mut sep = false;
@@ -68,6 +89,22 @@ impl<'a> Command<'a> {
         for (key, val) in extra.as_flags() {
             cmd.arg(key);
             cmd.arg(val);
+        }
+
+        if dry_run {
+            let args =
+                cmd.get_args()
+                    .map(|c| c.to_string_lossy())
+                    .fold(String::new(), |mut a, c| {
+                        if !a.is_empty() {
+                            a.push(' ');
+                        }
+                        a.push_str(&*c);
+                        a
+                    });
+            let name = cmd.get_program().to_string_lossy();
+            println!("{name} {args}");
+            std::process::exit(0);
         }
 
         let child = cmd.spawn()?;
@@ -101,11 +138,19 @@ impl Extra {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum Target {
     All,
     Test,
-    Normal,
+    Default,
+    Specific(Vec<String>),
+}
+
+#[derive(Debug, Clone)]
+pub enum Features {
+    All,
+    Specific(Vec<String>),
+    Default,
 }
 
 #[derive(Debug)]
@@ -115,6 +160,8 @@ pub struct Options {
     pub format: OutputKind,
     pub toolchain: Toolchain,
     pub target: Target,
+    pub features: Features,
+    pub dry_run: bool,
 }
 
 #[derive(Default, Copy, Clone, Debug)]
