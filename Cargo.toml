@@ -1,6 +1,6 @@
 [package]
 name = "ccs"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 license = "0BSD"
 repository = "https://github.com/museun/ccs"

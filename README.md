@@ -9,16 +9,21 @@ this runs clippy and produces are smaller output
 with the `-e` flag, it'll also try to provide some context
 
 Optional arguments:
-  -h, --help            prints the help message
-  -v, --version         prints the current version of this tool
-  -e, --explain         use the `explain` format
-  -t, --tests           check only test targets
-  -a, --all-targets     check all targets
-  -p, --path <path>     path to a specific Cargo.toml manifest. this defaults to the `cwd`
-  -W, --warn <string>   additional warning lints to use
-  -A, --allow <string>  additional allow lints to use
-  -D, --deny <string>   additional deny lints to use
-  -y, --annoying        use `clippy::all` and `clippy::nursery` (and nightly clippy) (default: false)  -n, --nightly         use nightly (default: false)
+  -h, --help          prints the help message
+  -v, --version       prints the current version of this tool
+  -n, --nightly       use the installed nightly version of clippy
+  -e, --explain       use the `explain` format
+  -t, --tests         check only test targets
+  -p, --path PATH     path to a specific Cargo.toml manifest. this defaults to the `cwd`
+  -y, --annoying      use `clippy::all` and `clippy::nursery` (requires nightly clippy)
+  -W, --warn WARNING  additional warning lints to use
+  -A, --allow ALLOW   additional allow lints to use
+  -D, --deny DENY     additional deny lints to use
+  --target TARGET     check a specific target
+  --all-targets       check all targets
+  --feature FEATURE   check a specific feature
+  --all-features      check all features
+  --dry-run           print out the command invocation -- don't actually run it
 ```
 
 example:
