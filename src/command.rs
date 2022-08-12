@@ -65,7 +65,7 @@ impl<'a> Command<'a> {
             }
             Features::Specific(features) => {
                 for feature in features {
-                    cmd.arg("--feature").arg(feature);
+                    cmd.arg("--features").arg(feature);
                 }
             }
 
