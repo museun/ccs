@@ -19,7 +19,7 @@ checksum = "c91f1f46651137be86f3a2b9a8359f9ab421d04d941c62b5982e1ca21113adf9"
 
 [[package]]
 name = "ccs"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "gumdrop",
