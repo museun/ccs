@@ -2,13 +2,10 @@ mod args;
 pub use args::Args;
 
 mod command;
-pub use command::{Command, Extra, Features, Options, OutputKind, Target, Toolchain};
+pub use command::{Command, Extra, Features, Options, Target, Toolchain};
 
-mod format;
-pub use format::Format;
-
-mod extract;
-pub use extract::{Extract, Long, Short};
+mod parse;
+pub use parse::{gather_reasons, Reason, Render, Theme};
 
 pub fn find_cargo(toolchain: Toolchain) -> Option<String> {
     let mut cmd = std::process::Command::new("rustup");

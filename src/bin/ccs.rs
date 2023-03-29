@@ -1,12 +1,10 @@
-use std::{
-    io::{stdout, BufRead},
-    path::PathBuf,
-};
+use std::{io::BufReader, path::PathBuf};
 
+use anstream::AutoStream;
 use gumdrop::Options as _;
 
 use ccs::{
-    Args, Command, Extra, Extract, Features, Long, Options, OutputKind, Short, Target, Toolchain,
+    gather_reasons, Args, Command, Extra, Features, Options, Render, Target, Theme, Toolchain,
 };
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
@@ -49,11 +47,6 @@ fn main() -> anyhow::Result<()> {
         std::process::exit(1)
     }
 
-    // TODO disable colors via flag
-    if std::env::var("NO_COLOR").is_ok() {
-        yansi::Paint::disable()
-    }
-
     if let Some(path) = args.path.as_mut() {
         try_find_manifest(path)?
     }
@@ -63,17 +56,16 @@ fn main() -> anyhow::Result<()> {
         .then_some(Toolchain::Nightly)
         .unwrap_or_default();
 
-    let command = if args.nightly {
+    let command = if args.nightly && args.annoying {
         toolchain = Toolchain::Nightly;
         Command::annoying()
+    } else if args.more_annoying {
+        Command::more_annoying()
     } else {
         Command::clippy()
     };
 
-    let format = args
-        .explain
-        .then_some(OutputKind::Human)
-        .unwrap_or_default();
+    let render = args.explain.then_some(Render::Full).unwrap_or_default();
 
     let mut target = match (args.tests, args.all_targets) {
         (.., true) => Target::All,
@@ -100,7 +92,6 @@ fn main() -> anyhow::Result<()> {
     } = args;
 
     let opts = Options {
-        format,
         toolchain,
         extra: Extra {
             allow,
@@ -114,23 +105,27 @@ fn main() -> anyhow::Result<()> {
     };
 
     let child = command.build_command(opts)?;
-    let mut w = stdout();
 
-    let (mut a, mut b);
-    let p: &mut dyn Extract = match format {
-        OutputKind::Human => {
-            a = Long::new();
-            &mut a
-        }
-        OutputKind::Short => {
-            b = Short::new();
-            &mut b
-        }
-    };
+    let mut out = AutoStream::new(std::io::stdout(), anstream::ColorChoice::Auto).lock();
+    let theme = Theme::default();
 
-    std::io::BufReader::new(child)
-        .lines()
-        .flatten()
-        .try_for_each(|line| p.extract(&line, &mut w))
+    let reasons = gather_reasons(BufReader::new(child));
+    let len = reasons.len();
+
+    reasons
+        .into_iter()
+        .enumerate()
+        .try_for_each(|(i, reason)| {
+            use std::io::Write as _;
+            reason.render(render, &theme, &mut out)?;
+            if i < len.saturating_sub(1) {
+                if let Some(delim) = &args.delimiter {
+                    writeln!(out, "{delim}")?;
+                } else if args.new_line {
+                    writeln!(out)?;
+                }
+            }
+            std::io::Result::Ok(())
+        })
         .map_err(Into::into)
 }

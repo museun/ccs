@@ -7,14 +7,30 @@ pub struct Command<'a> {
     pub args: Vec<Cow<'a, OsStr>>,
 }
 
+fn os_str(s: &str) -> Cow<'_, OsStr> {
+    Cow::Borrowed(OsStr::new(s))
+}
+
 impl<'a> Command<'a> {
     pub fn annoying() -> Self {
-        fn s(s: &str) -> Cow<'_, OsStr> {
-            Cow::Borrowed(OsStr::new(s))
-        }
-
         Self {
-            args: vec![s("-W"), s("clippy::all"), s("-W"), s("clippy::nursery")],
+            args: vec![
+                os_str("-W"),
+                os_str("clippy::all"),
+                os_str("-W"),
+                os_str("clippy::nursery"),
+            ],
+        }
+    }
+
+    pub fn more_annoying() -> Self {
+        Self {
+            args: vec![
+                os_str("-W"),
+                os_str("clippy::all"),
+                os_str("-W"),
+                os_str("clippy::pedantic"),
+            ],
         }
     }
 
@@ -26,7 +42,6 @@ impl<'a> Command<'a> {
         let Options {
             extra,
             path,
-            format,
             toolchain,
             target,
             features,
@@ -35,9 +50,9 @@ impl<'a> Command<'a> {
 
         let cargo = crate::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
         let mut cmd = std::process::Command::new(&cargo);
-        cmd.stderr(Stdio::piped());
+        cmd.stdout(Stdio::piped());
 
-        cmd.args([self.as_command(), format.as_str()]);
+        cmd.args([self.as_command(), "--message-format=json"]);
         if let Some(path) = path {
             cmd.arg("--manifest-path");
             cmd.arg(path);
@@ -73,13 +88,11 @@ impl<'a> Command<'a> {
         }
 
         let mut sep = false;
-        match &*self.args {
-            [args @ ..] if !args.is_empty() => {
-                cmd.arg("--");
-                cmd.args(args);
-                sep = true;
-            }
-            _ => {}
+
+        if !self.args.is_empty() {
+            cmd.arg("--");
+            cmd.args(&self.args);
+            sep = true;
         }
 
         if !extra.is_empty() && !sep {
@@ -108,7 +121,7 @@ impl<'a> Command<'a> {
         }
 
         let child = cmd.spawn()?;
-        let stderr = child.stderr.expect("stderr attached to the child process");
+        let stderr = child.stdout.expect("stderr attached to the child process");
 
         Ok(stderr)
     }
@@ -134,7 +147,7 @@ impl Extra {
     }
 
     pub fn is_empty(&self) -> bool {
-        !self.allow.is_empty() || !self.warning.is_empty() || !self.deny.is_empty()
+        self.allow.is_empty() && self.warning.is_empty() && self.deny.is_empty()
     }
 }
 
@@ -157,7 +170,6 @@ pub enum Features {
 pub struct Options {
     pub extra: Extra,
     pub path: Option<PathBuf>,
-    pub format: OutputKind,
     pub toolchain: Toolchain,
     pub target: Target,
     pub features: Features,
@@ -177,21 +189,5 @@ impl Toolchain {
             return Some("+nightly");
         }
         None
-    }
-}
-
-#[derive(Default, Copy, Clone, Debug)]
-pub enum OutputKind {
-    Human,
-    #[default]
-    Short,
-}
-
-impl OutputKind {
-    const fn as_str(self) -> &'static str {
-        match self {
-            Self::Human => "--message-format=human",
-            Self::Short => "--message-format=short",
-        }
     }
 }

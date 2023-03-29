@@ -29,6 +29,10 @@ pub struct Args {
     #[options(short = "y")]
     pub annoying: bool,
 
+    /// use `clippy::all` and `clippy::pedantic`
+    #[options(short = "Y")]
+    pub more_annoying: bool,
+
     /// additional warning lints to use
     #[options(short = "W", long = "warn")]
     pub warning: Vec<String>,
@@ -56,6 +60,14 @@ pub struct Args {
     /// check all features
     #[options(no_short)]
     pub all_features: bool,
+
+    /// append this delimited interpersed with each item
+    #[options(no_short)]
+    pub delimiter: Option<String>,
+
+    /// append a new line interpersed with each item
+    #[options(no_short, long = "nl")]
+    pub new_line: bool,
 
     /// print out the command invocation -- don't actually run it
     #[options(no_short)]
