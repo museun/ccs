@@ -112,7 +112,7 @@ impl<'a> Command<'a> {
                         if !a.is_empty() {
                             a.push(' ');
                         }
-                        a.push_str(&*c);
+                        a.push_str(&c);
                         a
                     });
             let name = cmd.get_program().to_string_lossy();
@@ -121,7 +121,7 @@ impl<'a> Command<'a> {
         }
 
         let child = cmd.spawn()?;
-        let stderr = child.stdout.expect("stderr attached to the child process");
+        let stderr = child.stdout.expect("stdout attached to the child process");
 
         Ok(stderr)
     }

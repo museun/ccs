@@ -5,7 +5,7 @@ mod command;
 pub use command::{Command, Extra, Features, Options, Target, Toolchain};
 
 mod parse;
-pub use parse::{gather_reasons, Reason, Render, Theme};
+pub use parse::{gather_reasons, Reason};
 
 pub fn find_cargo(toolchain: Toolchain) -> Option<String> {
     let mut cmd = std::process::Command::new("rustup");
@@ -23,3 +23,9 @@ pub fn find_cargo(toolchain: Toolchain) -> Option<String> {
     output.drain(output.trim_end().len()..);
     Some(output)
 }
+
+mod theme;
+pub use theme::Theme;
+
+mod render;
+pub use render::Render;
