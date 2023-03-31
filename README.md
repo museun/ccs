@@ -1,32 +1,36 @@
 # a simplier output for `cargo clippy`
 
 ```
-Usage: ccs [OPTIONS]
-
 simplifies the output of cargo clippy
-
 this runs clippy and produces are smaller output
 with the `-e` flag, it'll also try to provide some context
 
-Optional arguments:
-  -h, --help             prints the help message
-  -v, --version          prints the current version of this tool
-  -n, --nightly          use the installed nightly version of clippy
-  -e, --explain          use the `explain` format
-  -t, --tests            check only test targets
-  -p, --path PATH        path to a specific Cargo.toml manifest. this defaults to the `cwd`
-  -y, --annoying         use `clippy::all` and `clippy::nursery` (requires nightly clippy)
-  -Y, --more-annoying    use `clippy::all` and `clippy::pedantic`
-  -W, --warn WARNING     additional warning lints to use
-  -A, --allow ALLOW      additional allow lints to use
-  -D, --deny DENY        additional deny lints to use
-  --target TARGET        check a specific target
-  --all-targets          check all targets
-  --feature FEATURE      check a specific feature
-  --all-features         check all features
-  --delimiter DELIMITER  append this delimited interpersed with each item
-  --nl                   append a new line interpersed with each item
-  --dry-run              print out the command invocation -- don't actually run it
+Usage: [-n] [-e] [-i] [-t] [-p ARG] [-y] [-Y] -W ARG... -A ARG... -D ARG... --target ARG...
+[--all-targets] --feature ARG... [--all-features] [--delim ARG] [--nl] [--config-path]
+[--default-config] [--dry-run]
+
+Available options:
+    -n, --nightly         use the installed nightly version of clippy
+    -e, --explain         use the `explain` format
+    -i, --include         include any `notes` if present
+    -t, --tests           check only test targets
+    -p, --path <ARG>      path to a specific Cargo.toml manifest. this defaults to the `cwd`
+    -y, --annoying        use `clippy::all` and `clippy::nursery` (requires nightly clippy)
+    -Y, --more-annoying   use `clippy::all` and `clippy::pedantic`
+    -W, --warning <ARG>   additional warning lints to use
+    -A, --allow <ARG>     additional allow lints to use
+    -D, --deny <ARG>      additional deny lints to use
+        --target <ARG>    check a specific target
+        --all-targets     check all targets
+        --feature <ARG>   check a specific feature
+        --all-features    check all features
+        --delim <ARG>     append this delimited interpersed with each item
+        --nl              append a new line interpersed with each item
+        --config-path     prints out the configuration path
+        --default-config  print out a default configuration
+        --dry-run         print out the command invocation -- don't actually run it
+    -h, --help            Prints help information
+    -V, --version         Prints version information
 ```
 
 example:
