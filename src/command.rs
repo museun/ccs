@@ -90,9 +90,9 @@ impl<'a> Command<'a> {
         let sep = if self.args.is_empty() {
             cmd.arg("--");
             cmd.args(&self.args);
-            false
-        } else {
             true
+        } else {
+            false
         };
 
         if !extra.is_empty() && !sep {
