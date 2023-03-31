@@ -1,6 +1,6 @@
 use owo_colors::{DynColor, OwoColorize as _};
 
-use crate::{Render, Theme};
+use crate::{IncludeNotes, Render, Theme};
 
 use super::{Code, Level, Span};
 
@@ -17,20 +17,31 @@ impl Message {
     pub(super) fn render(
         &self,
         render: Render,
+        include_notes: IncludeNotes,
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         let color = match self.level {
             Level::Warning => theme.warning,
             Level::Error => theme.error,
+            Level::Note => theme.note,
             _ => theme.unknown,
         };
 
-        self.header(color, theme, out)?;
+        let ignored =
+            matches!(self.level, Level::Note) && matches!(include_notes, IncludeNotes::No);
+
+        if !ignored {
+            self.header(color, include_notes, theme, out)?;
+        }
 
         self.spans.iter().try_for_each(|span| {
+            if ignored {
+                return Ok(());
+            }
+
             span.render(render, theme, out)?;
-            if let Level::Warning = self.level {
+            if matches!(self.level, Level::Warning) {
                 if let Some(Code { code }) = self.code.as_ref() {
                     write!(out, "({code})", code = code.color(theme.lint_name))?;
                 }
@@ -42,6 +53,7 @@ impl Message {
     fn header(
         &self,
         color: impl DynColor,
+        include_notes: IncludeNotes,
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
@@ -58,6 +70,9 @@ impl Message {
             }
             Level::Warning => {
                 write!(out, "{warning} ", warning = "warning".color(color))?;
+            }
+            Level::Note if matches!(include_notes, IncludeNotes::Yes) => {
+                write!(out, "{note} ", note = "note".color(color))?;
             }
             _ => {}
         }

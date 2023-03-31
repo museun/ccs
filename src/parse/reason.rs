@@ -1,4 +1,4 @@
-use crate::{Render, Theme};
+use crate::{IncludeNotes, Render, Theme};
 
 use super::Message;
 
@@ -19,11 +19,12 @@ impl Reason {
     pub fn render(
         &self,
         render: Render,
+        include_notes: IncludeNotes,
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         match self {
-            Self::CompilerMessage { message } => message.render(render, theme, out),
+            Self::CompilerMessage { message } => message.render(render, include_notes, theme, out),
             Self::BuildFinished { success: true } => {
                 // TODO perhaps report this with a flag
                 Ok(())

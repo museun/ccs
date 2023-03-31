@@ -1,5 +1,5 @@
 mod args;
-pub use args::Args;
+pub use args::{args, Args};
 
 mod command;
 pub use command::{Command, Extra, Features, Options, Target, Toolchain};
@@ -28,4 +28,7 @@ mod theme;
 pub use theme::Theme;
 
 mod render;
-pub use render::Render;
+pub use render::{IncludeNotes, Render};
+
+mod config;
+pub use config::Config;

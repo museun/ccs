@@ -1,10 +1,10 @@
-use std::{io::BufReader, path::PathBuf};
+use std::{fs::Metadata, io::BufReader, path::PathBuf};
 
 use anstream::AutoStream;
-use gumdrop::Options as _;
 
 use ccs::{
-    gather_reasons, Args, Command, Extra, Features, Options, Render, Target, Theme, Toolchain,
+    gather_reasons, Args, Command, Config, Extra, Features, IncludeNotes, Options, Render, Target,
+    Theme, Toolchain,
 };
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
@@ -16,11 +16,11 @@ fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
             anyhow::ensure!(
                 std::fs::metadata(&tmp)
                     .ok()
-                    .filter(|c| c.is_file())
+                    .filter(Metadata::is_file)
                     .is_some(),
                 "tried to find a Cargo.toml but couldn't find one"
             );
-            *path = tmp
+            *path = tmp;
         }
         _ => anyhow::bail!("you must provide the path to the manifest file (Cargo.toml)"),
     }
@@ -31,15 +31,68 @@ fn is_nightly_available() -> bool {
     ccs::find_cargo(Toolchain::Nightly).is_some()
 }
 
-const NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
-
 fn main() -> anyhow::Result<()> {
-    let mut args = Args::parse_args_default_or_exit();
+    let mut args = ccs::args().run();
 
-    if args.version {
-        println!("{NAME}: {VERSION}");
+    if args.print_config_path {
+        match Config::get_config_path() {
+            Some(path) => {
+                println!("{}", path.to_string_lossy());
+                std::process::exit(0)
+            }
+            None => {
+                eprintln!("cannot locate a configuration directory");
+                std::process::exit(1)
+            }
+        }
+    }
+
+    if args.print_default_config {
+        let config = Config::default();
+        println!(
+            "{s}",
+            s = toml::to_string_pretty(&config) //
+                .expect("valid default configuration")
+        );
         std::process::exit(0)
+    }
+
+    let mut theme = Theme::default();
+
+    if let Some(path) = Config::get_config_path() {
+        let mut config = match Config::load(&path) {
+            Some(Ok(config)) => config,
+            Some(Err(err)) => {
+                eprintln!("cannot parse configuration file: {err}");
+                std::process::exit(1)
+            }
+            None => {
+                let dir = path.parent().expect("configuration directory");
+                let _ = std::fs::create_dir_all(dir);
+                if let Err(err) = Config::default().save(&path) {
+                    eprintln!("cannot write default config: {err}");
+                    std::process::exit(1)
+                }
+                Config::load(&path)
+                    .transpose()
+                    .ok()
+                    .flatten()
+                    .expect("default config should be valid")
+            }
+        };
+
+        args.warning.append(&mut config.lints.warn);
+        args.allow.append(&mut config.lints.allow);
+        args.deny.append(&mut config.lints.deny);
+
+        args.nightly ^= config.options.nightly;
+        args.explain ^= config.options.explain;
+        args.new_line ^= config.options.new_line;
+        args.include_notes ^= config.options.include_notes;
+
+        args.delimiter.get_or_insert(config.options.delimiter);
+
+        theme = config.theme;
     }
 
     if args.nightly && !is_nightly_available() {
@@ -48,7 +101,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Some(path) = args.path.as_mut() {
-        try_find_manifest(path)?
+        try_find_manifest(path)?;
     }
 
     let mut toolchain = args
@@ -65,8 +118,6 @@ fn main() -> anyhow::Result<()> {
         Command::clippy()
     };
 
-    let render = args.explain.then_some(Render::Full).unwrap_or_default();
-
     let mut target = match (args.tests, args.all_targets) {
         (.., true) => Target::All,
         (true, false) => Target::Test,
@@ -74,7 +125,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     if !args.target.is_empty() {
-        target = Target::Specific(std::mem::take(&mut args.target))
+        target = Target::Specific(std::mem::take(&mut args.target));
     }
 
     let features = match (args.all_features, &*args.feature) {
@@ -82,6 +133,12 @@ fn main() -> anyhow::Result<()> {
         (false, []) => Features::Default,
         _ => Features::Specific(std::mem::take(&mut args.feature)),
     };
+
+    let render = args.explain.then_some(Render::Full).unwrap_or_default();
+    let include_notes = args
+        .include_notes
+        .then_some(IncludeNotes::Yes)
+        .unwrap_or_default();
 
     let Args {
         allow,
@@ -107,7 +164,6 @@ fn main() -> anyhow::Result<()> {
     let child = command.build_command(opts)?;
 
     let mut out = AutoStream::new(std::io::stdout(), anstream::ColorChoice::Auto).lock();
-    let theme = Theme::default();
 
     let reasons = gather_reasons(BufReader::new(child));
     let len = reasons.len();
@@ -117,11 +173,12 @@ fn main() -> anyhow::Result<()> {
         .enumerate()
         .try_for_each(|(i, reason)| {
             use std::io::Write as _;
-            reason.render(render, &theme, &mut out)?;
+            reason.render(render, include_notes, &theme, &mut out)?;
             if i < len.saturating_sub(1) {
-                if let Some(delim) = &args.delimiter {
+                if let Some(delim) = &args.delimiter.as_ref().filter(|c| !c.is_empty()) {
                     writeln!(out, "{delim}")?;
-                } else if args.new_line {
+                }
+                if args.new_line {
                     writeln!(out)?;
                 }
             }

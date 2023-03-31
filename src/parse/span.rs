@@ -19,7 +19,7 @@ impl Span {
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
-        if let Render::Full = render {
+        if matches!(render, Render::Full) {
             use owo_colors::OwoColorize as _;
             self.relocate().try_for_each(|(start, end, text)| {
                 let head = &text[..start];
@@ -31,13 +31,18 @@ impl Span {
 
         const CONTINUATION: char = '⮡';
 
-        write!(
-            out,
-            " {cont} {file}:{line}:{col} ",
-            cont = CONTINUATION.color(theme.continuation),
-            file = self.file_name.color(theme.location),
+        let location = format!(
+            "{file}:{line}:{col}",
+            file = self.file_name,
             line = self.line_start,
             col = self.column_start,
+        );
+
+        write!(
+            out,
+            " {cont} {location} ",
+            cont = CONTINUATION.color(theme.continuation),
+            location = location.color(theme.location)
         )
     }
 

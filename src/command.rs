@@ -52,7 +52,7 @@ impl<'a> Command<'a> {
         let mut cmd = std::process::Command::new(&cargo);
         cmd.stdout(Stdio::piped());
 
-        cmd.args([self.as_command(), "--message-format=json"]);
+        cmd.args([Self::as_command(), "--message-format=json"]);
         if let Some(path) = path {
             cmd.arg("--manifest-path");
             cmd.arg(path);
@@ -87,13 +87,13 @@ impl<'a> Command<'a> {
             Features::Default => {}
         }
 
-        let mut sep = false;
-
-        if !self.args.is_empty() {
+        let sep = if self.args.is_empty() {
             cmd.arg("--");
             cmd.args(&self.args);
-            sep = true;
-        }
+            false
+        } else {
+            true
+        };
 
         if !extra.is_empty() && !sep {
             cmd.arg("--");
@@ -107,7 +107,7 @@ impl<'a> Command<'a> {
         if dry_run {
             let args =
                 cmd.get_args()
-                    .map(|c| c.to_string_lossy())
+                    .map(OsStr::to_string_lossy)
                     .fold(String::new(), |mut a, c| {
                         if !a.is_empty() {
                             a.push(' ');
@@ -126,7 +126,7 @@ impl<'a> Command<'a> {
         Ok(stderr)
     }
 
-    const fn as_command(&self) -> &'static str {
+    const fn as_command() -> &'static str {
         "clippy"
     }
 }
@@ -185,7 +185,7 @@ pub enum Toolchain {
 
 impl Toolchain {
     pub const fn as_str(self) -> Option<&'static str> {
-        if let Self::Nightly = self {
+        if matches!(self, Self::Nightly) {
             return Some("+nightly");
         }
         None
