@@ -49,9 +49,9 @@ impl Config {
 
     pub fn get_config_path() -> Option<PathBuf> {
         directories::ProjectDirs::from(
-            Config::QUALIFIER, //
-            Config::ORGANIZATION,
-            Config::APPLICATION,
+            Self::QUALIFIER, //
+            Self::ORGANIZATION,
+            Self::APPLICATION,
         )
         .map(|s| s.config_dir().join(Self::CONFIG_FILE_NAME))
     }
