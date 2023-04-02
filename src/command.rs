@@ -89,16 +89,10 @@ impl<'a> Command<'a> {
             Features::Default => {}
         }
 
-        let sep = if self.args.is_empty() {
-            cmd.arg("--");
-            cmd.args(&self.args);
-            true
-        } else {
-            false
-        };
+        cmd.arg("--");
 
-        if !extra.is_empty() && !sep {
-            cmd.arg("--");
+        if !self.args.is_empty() {
+            cmd.args(&self.args);
         }
 
         for (key, val) in extra.as_flags() {
