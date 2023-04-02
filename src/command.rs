@@ -29,6 +29,8 @@ impl<'a> Command<'a> {
                 os_str("-W"),
                 os_str("clippy::all"),
                 os_str("-W"),
+                os_str("clippy::nursery"),
+                os_str("-W"),
                 os_str("clippy::pedantic"),
             ],
         }
