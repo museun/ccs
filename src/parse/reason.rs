@@ -1,4 +1,4 @@
-use crate::{IncludeNotes, Render, Theme};
+use crate::{RenderOptions, Theme};
 
 use super::Message;
 
@@ -18,13 +18,12 @@ pub enum Reason {
 impl Reason {
     pub fn render(
         &self,
-        render: Render,
-        include_notes: IncludeNotes,
+        render_options: &RenderOptions,
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         match self {
-            Self::CompilerMessage { message } => message.render(render, include_notes, theme, out),
+            Self::CompilerMessage { message } => message.render(render_options, theme, out),
             Self::BuildFinished { success: true } => {
                 // TODO perhaps report this with a flag
                 Ok(())
@@ -40,7 +39,7 @@ impl Reason {
     #[inline]
     pub fn is_empty(&self) -> bool {
         matches!(self, Self::Ignored | Self::BuildFinished { .. })
-            || matches!(self, Self::CompilerMessage{ message: Message{ spans, .. } } if spans.is_empty())
+            || matches!(self, Self::CompilerMessage { message } if message.spans.is_empty() && message.children.is_empty())
     }
 
     #[inline]

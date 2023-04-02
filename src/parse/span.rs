@@ -1,6 +1,6 @@
 use owo_colors::OwoColorize as _;
 
-use crate::{Render, Theme};
+use crate::{RenderOptions, RenderStyle, Theme};
 
 use super::Text;
 
@@ -15,17 +15,23 @@ pub struct Span {
 impl Span {
     pub(super) fn render(
         &self,
-        render: Render,
+        render_options: &RenderOptions,
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
-        if matches!(render, Render::Full) {
+        if matches!(render_options.render, RenderStyle::Full) {
             use owo_colors::OwoColorize as _;
             self.relocate().try_for_each(|(start, end, text)| {
                 let head = &text[..start];
                 let mid = &text[start..end];
                 let tail = &text[end..];
-                writeln!(out, "  {head}{mid}{tail}", mid = mid.color(theme.highlight))
+                writeln!(
+                    out,
+                    "  {head}{mid}{tail}",
+                    head = head.color(theme.code),
+                    mid = mid.color(theme.highlight),
+                    tail = tail.color(theme.code)
+                )
             })?;
         }
 

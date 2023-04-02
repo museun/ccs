@@ -3,8 +3,8 @@ use std::{fs::Metadata, io::BufReader, path::PathBuf};
 use anstream::AutoStream;
 
 use ccs::{
-    gather_reasons, Args, Command, Config, Extra, Features, IncludeNotes, Options, Render, Target,
-    Theme, Toolchain,
+    gather_reasons, Args, Command, Config, Extra, Features, IncludeNotes, Options, Reason,
+    RenderOptions, RenderStyle, Target, Theme, Toolchain,
 };
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
@@ -32,7 +32,7 @@ fn is_nightly_available() -> bool {
 }
 
 fn main() -> anyhow::Result<()> {
-    let mut args = ccs::args().run();
+    let mut args = Args::parse();
 
     if args.print_config_path {
         match Config::get_config_path() {
@@ -59,40 +59,42 @@ fn main() -> anyhow::Result<()> {
 
     let mut theme = Theme::default();
 
-    if let Some(path) = Config::get_config_path() {
-        let mut config = match Config::load(&path) {
-            Some(Ok(config)) => config,
-            Some(Err(err)) => {
-                eprintln!("cannot parse configuration file: {err}");
-                std::process::exit(1)
-            }
-            None => {
-                let dir = path.parent().expect("configuration directory");
-                let _ = std::fs::create_dir_all(dir);
-                if let Err(err) = Config::default().save(&path) {
-                    eprintln!("cannot write default config: {err}");
+    if !args.ignore_config {
+        if let Some(path) = Config::get_config_path() {
+            let mut config = match Config::load(&path) {
+                Some(Ok(config)) => config,
+                Some(Err(err)) => {
+                    eprintln!("cannot parse configuration file: {err}");
                     std::process::exit(1)
                 }
-                Config::load(&path)
-                    .transpose()
-                    .ok()
-                    .flatten()
-                    .expect("default config should be valid")
-            }
-        };
+                None => {
+                    let dir = path.parent().expect("configuration directory");
+                    let _ = std::fs::create_dir_all(dir);
+                    if let Err(err) = Config::default().save(&path) {
+                        eprintln!("cannot write default config: {err}");
+                        std::process::exit(1)
+                    }
+                    Config::load(&path)
+                        .transpose()
+                        .ok()
+                        .flatten()
+                        .expect("default config should be valid")
+                }
+            };
 
-        args.warning.append(&mut config.lints.warn);
-        args.allow.append(&mut config.lints.allow);
-        args.deny.append(&mut config.lints.deny);
+            args.warning.append(&mut config.lints.warn);
+            args.allow.append(&mut config.lints.allow);
+            args.deny.append(&mut config.lints.deny);
 
-        args.nightly ^= config.options.nightly;
-        args.explain ^= config.options.explain;
-        args.new_line ^= config.options.new_line;
-        args.include_notes ^= config.options.include_notes;
+            args.nightly ^= config.options.nightly;
+            args.explain ^= config.options.explain;
+            args.new_line ^= config.options.new_line;
+            args.include_notes ^= config.options.include_notes;
 
-        args.delimiter.get_or_insert(config.options.delimiter);
+            args.delimiter.get_or_insert(config.options.delimiter);
 
-        theme = config.theme;
+            theme = config.theme;
+        }
     }
 
     if args.nightly && !is_nightly_available() {
@@ -113,6 +115,7 @@ fn main() -> anyhow::Result<()> {
         toolchain = Toolchain::Nightly;
         Command::annoying()
     } else if args.more_annoying {
+        toolchain = Toolchain::Nightly;
         Command::more_annoying()
     } else {
         Command::clippy()
@@ -134,11 +137,28 @@ fn main() -> anyhow::Result<()> {
         _ => Features::Specific(std::mem::take(&mut args.feature)),
     };
 
-    let render = args.explain.then_some(Render::Full).unwrap_or_default();
-    let include_notes = args
-        .include_notes
-        .then_some(IncludeNotes::Yes)
-        .unwrap_or_default();
+    let mut render_options = RenderOptions {
+        render: args
+            .explain
+            .then_some(RenderStyle::Full)
+            .unwrap_or_default(),
+
+        include_notes: args
+            .include_notes
+            .then_some(IncludeNotes::Yes)
+            .unwrap_or_default(),
+
+        ..RenderOptions::default()
+    };
+
+    for filter in std::mem::take(&mut args.filter) {
+        render_options = match filter {
+            ccs::Filter::AllWarnings => render_options.without_warnings(),
+            ccs::Filter::AllErrors => render_options.without_errors(),
+            ccs::Filter::Error(lint) => render_options.without_error(lint),
+            ccs::Filter::Warning(lint) => render_options.without_warning(lint),
+        }
+    }
 
     let Args {
         allow,
@@ -161,27 +181,29 @@ fn main() -> anyhow::Result<()> {
         dry_run,
     };
 
-    let child = command.build_command(opts)?;
-
+    let reasons = gather_reasons(BufReader::new(command.build_command(opts)?));
     let mut out = AutoStream::new(std::io::stdout(), anstream::ColorChoice::Auto).lock();
-
-    let reasons = gather_reasons(BufReader::new(child));
-    let len = reasons.len();
 
     reasons
         .into_iter()
+        .filter(|reason| {
+            if let Reason::CompilerMessage { message } = &reason {
+                !render_options.is_ignored(message.level, message.code.as_ref().map(|c| &*c.code))
+            } else {
+                true
+            }
+        })
         .enumerate()
         .try_for_each(|(i, reason)| {
             use std::io::Write as _;
-            reason.render(render, include_notes, &theme, &mut out)?;
-            if i < len.saturating_sub(1) {
+            if i > 0 {
                 if let Some(delim) = &args.delimiter.as_ref().filter(|c| !c.is_empty()) {
                     writeln!(out, "{delim}")?;
-                }
-                if args.new_line {
+                } else if args.new_line {
                     writeln!(out)?;
                 }
             }
+            reason.render(&render_options, &theme, &mut out)?;
             std::io::Result::Ok(())
         })
         .map_err(Into::into)

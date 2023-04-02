@@ -1,5 +1,5 @@
 mod args;
-pub use args::{args, Args};
+pub use args::Args;
 
 mod command;
 pub use command::{Command, Extra, Features, Options, Target, Toolchain};
@@ -27,8 +27,8 @@ pub fn find_cargo(toolchain: Toolchain) -> Option<String> {
 mod theme;
 pub use theme::Theme;
 
-mod render;
-pub use render::{IncludeNotes, Render};
+mod options;
+pub use options::{Filter, IncludeNotes, RenderOptions, RenderStyle};
 
 mod config;
 pub use config::Config;

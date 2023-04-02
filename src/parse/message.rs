@@ -1,6 +1,6 @@
 use owo_colors::{DynColor, OwoColorize as _};
 
-use crate::{IncludeNotes, Render, Theme};
+use crate::{IncludeNotes, RenderOptions, Theme};
 
 use super::{Code, Level, Span};
 
@@ -11,13 +11,13 @@ pub struct Message {
     pub message: String,
     pub level: Level,
     pub spans: Vec<Span>,
+    pub children: Vec<Self>,
 }
 
 impl Message {
     pub(super) fn render(
         &self,
-        render: Render,
-        include_notes: IncludeNotes,
+        render_options: &RenderOptions,
         theme: &Theme,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
@@ -28,11 +28,11 @@ impl Message {
             _ => theme.unknown,
         };
 
-        let ignored =
-            matches!(self.level, Level::Note) && matches!(include_notes, IncludeNotes::No);
+        let ignored = matches!(self.level, Level::Note)
+            && matches!(render_options.include_notes, IncludeNotes::No);
 
         if !ignored {
-            self.header(color, include_notes, theme, out)?;
+            self.header(color, render_options.include_notes, theme, out)?;
         }
 
         self.spans.iter().try_for_each(|span| {
@@ -40,7 +40,7 @@ impl Message {
                 return Ok(());
             }
 
-            span.render(render, theme, out)?;
+            span.render(render_options, theme, out)?;
             if matches!(self.level, Level::Warning) {
                 if let Some(Code { code }) = self.code.as_ref() {
                     write!(out, "({code})", code = code.color(theme.lint_name))?;
