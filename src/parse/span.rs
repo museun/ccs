@@ -56,18 +56,24 @@ impl Span {
         let mut iter = self.text.iter().enumerate();
         let mut left_pad = 0;
         std::iter::from_fn(move || {
-            let (i, span) = iter.next()?;
-            if i == 0 {
-                let s = span.text.trim_start();
-                left_pad = span.text.len() - s.len();
-            }
+            loop {
+                let (i, span) = iter.next()?;
+                if span.text.trim_start().is_empty() {
+                    continue;
+                }
 
-            // error messages are 1 indexed
-            Some((
-                span.highlight_start.saturating_sub(left_pad + 1),
-                span.highlight_end.saturating_sub(left_pad + 1),
-                &span.text[left_pad..],
-            ))
+                if i == 0 {
+                    let s = span.text.trim_start();
+                    left_pad = span.text.len() - s.len();
+                }
+
+                // error messages are 1 indexed
+                break Some((
+                    span.highlight_start.saturating_sub(left_pad + 1),
+                    span.highlight_end.saturating_sub(left_pad + 1),
+                    &span.text[left_pad..],
+                ));
+            }
         })
     }
 }
