@@ -2,35 +2,87 @@
 
 ```
 simplifies the output of cargo clippy
+
 this runs clippy and produces are smaller output
-with the `-e` flag, it'll also try to provide some context
 
-Usage: [-n] [-e] [-i] [-t] [-p ARG] [-y] [-Y] -W ARG... -A ARG... -D ARG... --target ARG...
-[--all-targets] --feature ARG... [--all-features] [--delim ARG] [--nl] [--config-path]
-[--default-config] [--dry-run]
+Usage: ccs [OPTIONS]
 
-Available options:
-    -n, --nightly         use the installed nightly version of clippy
-    -e, --explain         use the `explain` format
-    -i, --include         include any `notes` if present
-    -t, --tests           check only test targets
-    -p, --path <ARG>      path to a specific Cargo.toml manifest. this defaults to the `cwd`
-    -y, --annoying        use `clippy::all` and `clippy::nursery` (requires nightly clippy)
-    -Y, --more-annoying   use `clippy::all` and `clippy::pedantic`
-    -W, --warning <ARG>   additional warning lints to use
-    -A, --allow <ARG>     additional allow lints to use
-    -D, --deny <ARG>      additional deny lints to use
-        --target <ARG>    check a specific target
-        --all-targets     check all targets
-        --feature <ARG>   check a specific feature
-        --all-features    check all features
-        --delim <ARG>     append this delimited interpersed with each item
-        --nl              append a new line interpersed with each item
-        --config-path     prints out the configuration path
-        --default-config  print out a default configuration
-        --dry-run         print out the command invocation -- don't actually run it
-    -h, --help            Prints help information
-    -V, --version         Prints version information
+Options:
+  -n, --nightly
+          use the installed nightly version of clippy
+
+  -p, --path <path>
+          path to a specific Cargo.toml manifest
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+
+targets:
+  -t, --tests
+          check only the test target
+
+      --target <target>
+          check a specific target
+
+      --all-targets
+          check all targets
+
+      --feature <feature>
+          check a specific feature
+
+      --all-features
+          check all features
+
+controlling lints:
+  -y, --annoying
+          use `clippy::all` and `clippy::nursery` (this requires nightly clippy)
+
+  -Y, --more-annoying
+          use `clippy::all` and `clippy::nursery` and `clippy::pedantic` (this requires nightly clippy)
+
+  -f, --filter <filter>
+          syntax: (warning|error)=(named_lint|all).
+          example: -f error=all -f warning=unused_imports
+
+  -W, --warning <lint>
+          additional warning lints to use
+
+  -A, --allow <lint>
+          additional allow lints to use
+
+  -D, --deny <lint>
+          additional deny lints to use
+
+appearance:
+  -e, --explain
+          include a snippet of the code if available
+
+  -i, --include
+          sometimes notes are provided to further explain a lint.
+          these can be rather verbose. by default they are hidden,
+          use this flag to show them
+
+      --delimiter <delimiter>
+          append this delimited interspersed with each item
+
+      --nl
+          append a new line interspersed with each item
+
+meta:
+      --ignore-config
+          don't use the configuration file
+
+      --print-config-path
+          prints out the configuration path
+
+      --print-default-config
+          print out a default configuration
+
+      --dry-run
+          print out the command invocation -- don't actually run it
 ```
 
 example:
