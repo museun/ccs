@@ -64,6 +64,9 @@ impl<'a> Command<'a> {
             Target::All => {
                 cmd.arg("--all-targets");
             }
+            Target::Example => {
+                cmd.arg("--examples");
+            }
             Target::Test => {
                 cmd.arg("--tests");
             }
@@ -151,6 +154,7 @@ impl Extra {
 pub enum Target {
     All,
     Test,
+    Example,
     Default,
     Specific(Vec<String>),
 }

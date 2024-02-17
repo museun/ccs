@@ -121,10 +121,11 @@ fn main() -> anyhow::Result<()> {
         Command::clippy()
     };
 
-    let mut target = match (args.tests, args.all_targets) {
+    let mut target = match (args.tests, args.examples, args.all_targets) {
         (.., true) => Target::All,
-        (true, false) => Target::Test,
-        (false, false) => Target::Default,
+        (true, _, false) => Target::Test,
+        (_, true, false) => Target::Example,
+        (false, false, false) => Target::Default,
     };
 
     if !args.target.is_empty() {
