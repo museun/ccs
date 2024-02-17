@@ -1,17 +1,17 @@
 [package]
-name       = "ccs"
-version    = "0.7.3"
-edition    = "2021"
-license    = "0BSD"
+name = "ccs"
+version = "0.8.0"
+edition = "2021"
+license = "0BSD"
 repository = "https://github.com/museun/ccs"
 
 [dependencies]
-anstream    = "0.2.6"
-anyhow      = "1.0.70"
-clap        = { version = "4.2.1", features = ["wrap_help"] }
+anstream = "0.2.6"
+anyhow = "1.0.70"
+clap = { version = "4.2.1", features = [ "wrap_help" ] }
 directories = "5.0.0"
-indoc       = "2.0.1"
-owo-colors  = { version = "3.5.0", features = ["supports-colors"] }
-serde       = { version = "1.0.159", features = ["derive"] }
-serde_json  = "1.0.95"
-toml        = "0.7.3"
+indoc = "2.0.1"
+owo-colors = { version = "3.5.0", features = [ "supports-colors" ] }
+serde = { version = "1.0.159", features = [ "derive" ] }
+serde_json = "1.0.95"
+toml = "0.7.3"
