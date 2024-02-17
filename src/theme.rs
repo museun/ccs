@@ -146,7 +146,7 @@ impl serde::Serialize for Color {
 macro_rules! named_color {
     ($($s:expr => $ident:ident: ($r:expr, $g:expr, $b:expr))*) => {
         $( const $ident: Color = Color($r, $g, $b); )*
-        const NAMED_COLORS: &[(&'static str, Color)] = &[$(($s, Self::$ident)),*];
+        const NAMED_COLORS: &'static [(&'static str, Color)] = &[$(($s, Self::$ident)),*];
     };
 }
 

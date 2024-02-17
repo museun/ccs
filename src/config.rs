@@ -26,10 +26,10 @@ pub struct Config {
 }
 
 impl Config {
-    const QUALIFIER: &str = "com.github";
-    const ORGANIZATION: &str = "museun";
-    const APPLICATION: &str = env!("CARGO_PKG_NAME");
-    const CONFIG_FILE_NAME: &str = "ccs.toml";
+    const QUALIFIER: &'static str = "com.github";
+    const ORGANIZATION: &'static str = "museun";
+    const APPLICATION: &'static str = env!("CARGO_PKG_NAME");
+    const CONFIG_FILE_NAME: &'static str = "ccs.toml";
 
     // TODO: will this ever actually be used?
     pub fn save(&self, path: &Path) -> anyhow::Result<()> {

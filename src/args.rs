@@ -10,6 +10,7 @@ pub struct Args {
     pub explain: bool,
     pub include_notes: bool,
     pub tests: bool,
+    pub examples: bool,
     pub path: Option<PathBuf>,
     pub annoying: bool,
     pub more_annoying: bool,
@@ -50,7 +51,15 @@ impl Args {
                     .long("tests")
                     .action(ArgAction::SetTrue)
                     .help_heading("targets")
-                    .help("check only the test target"),
+                    .help("checks only the test targets"),
+            )
+            .arg(
+                Arg::new("examples")
+                    .short('x')
+                    .long("examples")
+                    .action(ArgAction::SetTrue)
+                    .help_heading("targets")
+                    .help("checks only the example targets"),
             )
             .arg(
                 Arg::new("target")
@@ -231,6 +240,7 @@ impl Args {
             explain: matches.get_flag("explain"),
             include_notes: matches.get_flag("include_notes"),
             tests: matches.get_flag("tests"),
+            examples: matches.get_flag("examples"),
             path: matches.remove_one("path"),
             annoying: matches.get_flag("annoying"),
             more_annoying: matches.get_flag("more_annoying"),
