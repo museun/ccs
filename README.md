@@ -1,13 +1,19 @@
-# a simplier output for `cargo clippy`
+# a simplier output for `cargo clippy` (and `cargo check`)
 
 ```
 simplifies the output of cargo clippy
 
-this runs clippy and produces are smaller output
+this runs clippy (or check) and produces a more compact output
 
 Usage: ccs [OPTIONS]
 
 Options:
+      --tool <tool>
+          specify the tool to use to check for lints
+
+          [default: clippy]
+          [possible values: clippy, check]
+
   -n, --nightly
           use the installed nightly version of clippy
 
@@ -22,7 +28,10 @@ Options:
 
 targets:
   -t, --tests
-          check only the test target
+          checks only the test targets
+
+  -x, --examples
+          checks only the example targets
 
       --target <target>
           check a specific target
@@ -41,7 +50,8 @@ controlling lints:
           use `clippy::all` and `clippy::nursery` (this requires nightly clippy)
 
   -Y, --more-annoying
-          use `clippy::all` and `clippy::nursery` and `clippy::pedantic` (this requires nightly clippy)
+          use `clippy::all` and `clippy::nursery` and `clippy::pedantic` (this requires
+          nightly clippy)
 
   -f, --filter <filter>
           syntax: (warning|error)=(named_lint|all).
