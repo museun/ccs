@@ -1,11 +1,35 @@
 use std::{any::Any, path::PathBuf, str::FromStr};
 
-use clap::{builder::ValueParser, Arg, ArgAction, ArgMatches};
+use clap::{
+    builder::{EnumValueParser, PossibleValue, ValueParser},
+    Arg, ArgAction, ArgMatches, ValueEnum,
+};
 
 use crate::Filter;
 
+#[derive(Copy, Clone, Default, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum Tool {
+    #[default]
+    Clippy,
+    Check,
+}
+
+impl ValueEnum for Tool {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::Clippy, Self::Check]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Self::Clippy => PossibleValue::new("clippy"),
+            Self::Check => PossibleValue::new("check"),
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct Args {
+    pub tool: Tool,
     pub nightly: bool,
     pub explain: bool,
     pub include_notes: bool,
@@ -36,7 +60,16 @@ impl Args {
             .version(env!("CARGO_PKG_VERSION"))
             .about(
                 "simplifies the output of cargo clippy\n\n\
-                this runs clippy and produces are smaller output",
+                this runs clippy (or check) and produces a more compact output",
+            )
+            .arg(
+                Arg::new("tool")
+                    .long("tool")
+                    .action(ArgAction::Set)
+                    .value_parser(EnumValueParser::<Tool>::new())
+                    .ignore_case(true)
+                    .default_value("clippy")
+                    .help("specify the tool to use to check for lints"),
             )
             .arg(
                 Arg::new("nightly")
@@ -236,6 +269,7 @@ impl Args {
         }
 
         Self {
+            tool: matches.remove_one("tool").unwrap_or_default(),
             nightly: matches.get_flag("nightly"),
             explain: matches.get_flag("explain"),
             include_notes: matches.get_flag("include_notes"),

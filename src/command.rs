@@ -2,6 +2,8 @@ use std::{borrow::Cow, ffi::OsStr, io::Read, path::PathBuf, process::Stdio};
 
 use anyhow::Context;
 
+use crate::Tool;
+
 #[derive(Debug)]
 pub struct Command<'a> {
     pub args: Vec<Cow<'a, OsStr>>,
@@ -36,7 +38,7 @@ impl<'a> Command<'a> {
         }
     }
 
-    pub const fn clippy() -> Self {
+    pub const fn default_lints() -> Self {
         Self { args: vec![] }
     }
 
@@ -48,13 +50,14 @@ impl<'a> Command<'a> {
             target,
             features,
             dry_run,
+            tool,
         } = opts;
 
         let cargo = crate::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
         let mut cmd = std::process::Command::new(&cargo);
         cmd.stdout(Stdio::piped());
 
-        cmd.args([Self::as_command(), "--message-format=json"]);
+        cmd.args([Self::as_command(tool), "--message-format=json"]);
         if let Some(path) = path {
             cmd.arg("--manifest-path");
             cmd.arg(path);
@@ -125,8 +128,11 @@ impl<'a> Command<'a> {
         Ok(stderr)
     }
 
-    const fn as_command() -> &'static str {
-        "clippy"
+    const fn as_command(tool: Tool) -> &'static str {
+        match tool {
+            Tool::Clippy => "clippy",
+            Tool::Check => "check",
+        }
     }
 }
 
@@ -174,6 +180,7 @@ pub struct Options {
     pub target: Target,
     pub features: Features,
     pub dry_run: bool,
+    pub tool: Tool,
 }
 
 #[derive(Default, Copy, Clone, Debug)]

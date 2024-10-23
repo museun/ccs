@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::Theme;
+use crate::{args::Tool, Theme};
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Lints {
@@ -20,6 +20,8 @@ pub struct Options {
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Config {
+    #[serde(default)]
+    pub tool: Tool,
     pub lints: Lints,
     pub options: Options,
     pub theme: Theme,

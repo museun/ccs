@@ -4,7 +4,7 @@ use anstream::AutoStream;
 
 use ccs::{
     gather_reasons, Args, Command, Config, Extra, Features, IncludeNotes, Options, Reason,
-    RenderOptions, RenderStyle, Target, Theme, Toolchain,
+    RenderOptions, RenderStyle, Target, Theme, Tool, Toolchain,
 };
 
 fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
@@ -34,6 +34,11 @@ fn is_nightly_available() -> bool {
 fn main() -> anyhow::Result<()> {
     let mut args = Args::parse();
 
+    if matches!(args.tool, Tool::Check) && (args.annoying || args.more_annoying) {
+        eprintln!("Error: -y / -Y requires `--tool clippy`");
+        std::process::exit(1)
+    }
+
     if args.print_config_path {
         match Config::get_config_path() {
             Some(path) => {
@@ -59,6 +64,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut theme = Theme::default();
 
+    // TODO why are we using a configuration file?
     if !args.ignore_config {
         if let Some(path) = Config::get_config_path() {
             let mut config = match Config::load(&path) {
@@ -85,6 +91,8 @@ fn main() -> anyhow::Result<()> {
             args.warning.append(&mut config.lints.warn);
             args.allow.append(&mut config.lints.allow);
             args.deny.append(&mut config.lints.deny);
+
+            // args.tool = config.tool;
 
             args.nightly ^= config.options.nightly;
             args.explain ^= config.options.explain;
@@ -118,7 +126,7 @@ fn main() -> anyhow::Result<()> {
         toolchain = Toolchain::Nightly;
         Command::more_annoying()
     } else {
-        Command::clippy()
+        Command::default_lints()
     };
 
     let mut target = match (args.tests, args.examples, args.all_targets) {
@@ -166,6 +174,7 @@ fn main() -> anyhow::Result<()> {
         warning,
         deny,
         dry_run,
+        tool,
         ..
     } = args;
 
@@ -180,6 +189,7 @@ fn main() -> anyhow::Result<()> {
         target,
         features,
         dry_run,
+        tool,
     };
 
     let reasons = gather_reasons(BufReader::new(command.build_command(opts)?));

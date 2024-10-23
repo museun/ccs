@@ -1,5 +1,5 @@
 mod args;
-pub use args::Args;
+pub use args::{Args, Tool};
 
 mod command;
 pub use command::{Command, Extra, Features, Options, Target, Toolchain};

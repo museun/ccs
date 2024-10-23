@@ -64,6 +64,7 @@ impl Span {
 
                 if i == 0 {
                     let s = span.text.trim_start();
+                    // TODO use unicode-width here
                     left_pad = span.text.len() - s.len();
                 }
 
@@ -71,6 +72,7 @@ impl Span {
                 break Some((
                     span.highlight_start.saturating_sub(left_pad + 1),
                     span.highlight_end.saturating_sub(left_pad + 1),
+                    // TODO use unicode-segmentation here
                     &span.text[left_pad..],
                 ));
             }
