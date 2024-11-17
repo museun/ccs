@@ -39,11 +39,14 @@ targets:
       --all-targets
           check all targets
 
-      --feature <feature>
+  -F, --features <features>
           check a specific feature
 
       --all-features
           check all features
+
+      --no-default-features
+          disable all features
 
 controlling lints:
   -y, --annoying
@@ -93,6 +96,7 @@ meta:
 
       --dry-run
           print out the command invocation -- don't actually run it
+
 ```
 
 example:
