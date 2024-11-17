@@ -44,8 +44,9 @@ pub struct Args {
     pub deny: Vec<String>,
     pub target: Vec<String>,
     pub all_targets: bool,
-    pub feature: Vec<String>,
+    pub features: Vec<String>,
     pub all_features: bool,
+    pub no_features: bool,
     pub delimiter: Option<String>,
     pub new_line: bool,
     pub ignore_config: bool,
@@ -109,8 +110,9 @@ impl Args {
                     .help("check all targets"),
             )
             .arg(
-                Arg::new("feature")
-                    .long("feature")
+                Arg::new("features")
+                    .long("features")
+                    .short('F')
                     .help_heading("targets")
                     .action(ArgAction::Append)
                     .help("check a specific feature"),
@@ -121,6 +123,13 @@ impl Args {
                     .action(ArgAction::SetTrue)
                     .help_heading("targets")
                     .help("check all features"),
+            )
+            .arg(
+                Arg::new("no_default_features")
+                    .long("no-default-features")
+                    .action(ArgAction::SetTrue)
+                    .help_heading("targets")
+                    .help("disable all features"),
             )
             .arg(
                 Arg::new("path")
@@ -284,8 +293,9 @@ impl Args {
             deny: get_many(&mut matches, "deny"),
             target: get_many(&mut matches, "target"),
             all_targets: matches.get_flag("all_targets"),
-            feature: get_many(&mut matches, "feature"),
+            features: get_many(&mut matches, "features"),
             all_features: matches.get_flag("all_features"),
+            no_features: matches.get_flag("no_default_features"),
             delimiter: matches.remove_one("delimiter"),
             new_line: matches.get_flag("new_line"),
             ignore_config: matches.get_flag("ignore_config"),

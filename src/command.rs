@@ -86,12 +86,14 @@ impl<'a> Command<'a> {
             Features::All => {
                 cmd.arg("--all-features");
             }
+            Features::None => {
+                cmd.arg("--no-default-features");
+            }
             Features::Specific(features) => {
                 for feature in features {
                     cmd.arg("--features").arg(feature);
                 }
             }
-
             Features::Default => {}
         }
 
@@ -170,6 +172,7 @@ pub enum Features {
     All,
     Specific(Vec<String>),
     Default,
+    None,
 }
 
 #[derive(Debug)]

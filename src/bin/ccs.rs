@@ -39,6 +39,11 @@ fn main() -> anyhow::Result<()> {
         std::process::exit(1)
     }
 
+    if args.all_features && args.no_features {
+        eprintln!("Error: `all-features` and `no-default-features` are exclusive");
+        std::process::exit(1)
+    }
+
     if args.print_config_path {
         match Config::get_config_path() {
             Some(path) => {
@@ -140,10 +145,11 @@ fn main() -> anyhow::Result<()> {
         target = Target::Specific(std::mem::take(&mut args.target));
     }
 
-    let features = match (args.all_features, &*args.feature) {
-        (true, ..) => Features::All,
-        (false, []) => Features::Default,
-        _ => Features::Specific(std::mem::take(&mut args.feature)),
+    let features = match (args.all_features, args.no_features, &*args.features) {
+        (true, false, ..) => Features::All,
+        (false, true, ..) => Features::None,
+        (false, false, []) => Features::Default,
+        _ => Features::Specific(std::mem::take(&mut args.features)),
     };
 
     let mut render_options = RenderOptions {
