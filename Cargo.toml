@@ -1,6 +1,6 @@
 [package]
 name = "ccs"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 license = "0BSD"
 repository = "https://github.com/museun/ccs"
@@ -14,4 +14,5 @@ indoc = "2.0.5"
 owo-colors = { version = "3.5.0", features = [ "supports-colors" ] }
 serde = { version = "1.0.213", features = [ "derive" ] }
 serde_json = "1.0.132"
+str_indices = "0.4.4"
 toml = "0.7.8"
