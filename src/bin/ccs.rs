@@ -69,7 +69,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut theme = Theme::default();
 
-    // TODO why are we using a configuration file?
+    let mut continuation = Some(Config::CONTINUATION);
+
     if !args.ignore_config {
         if let Some(path) = Config::get_config_path() {
             let mut config = match Config::load(&path) {
@@ -92,6 +93,8 @@ fn main() -> anyhow::Result<()> {
                         .expect("default config should be valid")
                 }
             };
+
+            continuation = config.continuation;
 
             args.warning.append(&mut config.lints.warn);
             args.allow.append(&mut config.lints.allow);
@@ -220,7 +223,7 @@ fn main() -> anyhow::Result<()> {
                     writeln!(out)?;
                 }
             }
-            reason.render(&render_options, &theme, &mut out)?;
+            reason.render(&render_options, &theme, &continuation, &mut out)?;
             std::io::Result::Ok(())
         })
         .map_err(Into::into)

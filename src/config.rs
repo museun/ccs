@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 
 use crate::{args::Tool, Theme};
 
@@ -18,13 +21,30 @@ pub struct Options {
     pub new_line: bool,
 }
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub tool: Tool,
     pub lints: Lints,
     pub options: Options,
     pub theme: Theme,
+    pub continuation: Option<Cow<'static, str>>,
+}
+
+impl Config {
+    pub const CONTINUATION: Cow<'static, str> = Cow::Borrowed("⮡");
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            tool: Default::default(),
+            lints: Default::default(),
+            options: Default::default(),
+            theme: Default::default(),
+            continuation: Some(Self::CONTINUATION),
+        }
+    }
 }
 
 impl Config {

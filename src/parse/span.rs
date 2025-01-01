@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use owo_colors::OwoColorize as _;
 
 use crate::{RenderOptions, RenderStyle, Theme};
@@ -17,6 +19,7 @@ impl Span {
         &self,
         render_options: &RenderOptions,
         theme: &Theme,
+        continuation: &Option<Cow<'static, str>>,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         if matches!(render_options.render, RenderStyle::Full) {
@@ -39,8 +42,6 @@ impl Span {
             })?;
         }
 
-        const CONTINUATION: char = '⮡';
-
         let location = format!(
             "{file}:{line}:{col}",
             file = self.file_name,
@@ -48,12 +49,21 @@ impl Span {
             col = self.column_start,
         );
 
-        write!(
-            out,
-            " {cont} {location} ",
-            cont = CONTINUATION.color(theme.continuation),
-            location = location.color(theme.location)
-        )
+        match continuation {
+            Some(continuation) => {
+                write!(
+                    out,
+                    " {cont} {location} ",
+                    cont = continuation.color(theme.continuation),
+                    location = location.color(theme.location)
+                )
+            }
+            None => write!(
+                out,
+                " {location} ",
+                location = location.color(theme.location)
+            ),
+        }
     }
 
     fn relocate(&self) -> impl Iterator<Item = (usize, usize, &str)> + '_ {
