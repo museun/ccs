@@ -43,7 +43,7 @@ impl Span {
         }
 
         let location = format!(
-            "{file}:{line}:{col}",
+            "\x1b]8;;{file}:{line}:{col}\x1b\\{file}:{line}:{col}\x1b]8;;\x1b\\\n",
             file = self.file_name,
             line = self.line_start,
             col = self.column_start,
