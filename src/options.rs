@@ -1,4 +1,4 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{borrow::Cow, collections::HashSet, str::FromStr};
 
 use crate::parse::Level;
 
@@ -7,6 +7,9 @@ pub struct RenderOptions {
     pub render: RenderStyle,
     pub include_notes: IncludeNotes,
     pub filter: HashSet<Filter>,
+    pub continuation: Option<Cow<'static, str>>,
+    pub delimiter: Option<String>,
+    pub new_line: bool,
 }
 
 impl RenderOptions {
@@ -19,6 +22,7 @@ impl RenderOptions {
         self.filter.insert(Filter::Warning(name.to_string()));
         self
     }
+
     pub fn without_errors(mut self) -> Self {
         self.filter.insert(Filter::AllErrors);
         self

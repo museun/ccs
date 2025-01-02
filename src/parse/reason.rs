@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::{RenderOptions, Theme};
 
 use super::Message;
@@ -22,13 +20,10 @@ impl Reason {
         &self,
         render_options: &RenderOptions,
         theme: &Theme,
-        continuation: &Option<Cow<'static, str>>,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         match self {
-            Self::CompilerMessage { message } => {
-                message.render(render_options, theme, continuation, out)
-            }
+            Self::CompilerMessage { message } => message.render(render_options, theme, out),
             Self::BuildFinished { success: true } => {
                 // TODO perhaps report this with a flag
                 Ok(())

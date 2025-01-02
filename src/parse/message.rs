@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use owo_colors::{DynColor, OwoColorize as _};
 
 use crate::{IncludeNotes, RenderOptions, Theme};
@@ -21,7 +19,6 @@ impl Message {
         &self,
         render_options: &RenderOptions,
         theme: &Theme,
-        continuation: &Option<Cow<'static, str>>,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         let color = match self.level {
@@ -43,7 +40,7 @@ impl Message {
                 return Ok(());
             }
 
-            span.render(render_options, theme, continuation, out)?;
+            span.render(render_options, theme, out)?;
             if matches!(self.level, Level::Warning) {
                 if let Some(Code { code }) = self.code.as_ref() {
                     write!(out, "({code})", code = code.color(theme.lint_name))?;

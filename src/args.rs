@@ -27,9 +27,30 @@ impl ValueEnum for Tool {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum Mode {
+    Interactive,
+    #[default]
+    Report,
+}
+
+impl ValueEnum for Mode {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::Interactive, Self::Report]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Self::Interactive => PossibleValue::new("interactive"),
+            Self::Report => PossibleValue::new("report"),
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct Args {
     pub tool: Tool,
+    pub mode: Mode,
     pub nightly: bool,
     pub explain: bool,
     pub include_notes: bool,
@@ -71,6 +92,15 @@ impl Args {
                     .ignore_case(true)
                     .default_value("clippy")
                     .help("specify the tool to use to check for lints"),
+            )
+            .arg(
+                Arg::new("mode")
+                    .long("mode")
+                    .action(ArgAction::Set)
+                    .value_parser(EnumValueParser::<Mode>::new())
+                    .ignore_case(true)
+                    .default_value("report")
+                    .help("specifies whether it should run in interactive or report mode"),
             )
             .arg(
                 Arg::new("nightly")
@@ -279,6 +309,7 @@ impl Args {
 
         Self {
             tool: matches.remove_one("tool").unwrap_or_default(),
+            mode: matches.remove_one("mode").unwrap_or_default(),
             nightly: matches.get_flag("nightly"),
             explain: matches.get_flag("explain"),
             include_notes: matches.get_flag("include_notes"),

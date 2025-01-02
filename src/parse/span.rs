@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use owo_colors::OwoColorize as _;
 
 use crate::{RenderOptions, RenderStyle, Theme};
@@ -19,7 +17,6 @@ impl Span {
         &self,
         render_options: &RenderOptions,
         theme: &Theme,
-        continuation: &Option<Cow<'static, str>>,
         out: &mut dyn std::io::Write,
     ) -> std::io::Result<()> {
         if matches!(render_options.render, RenderStyle::Full) {
@@ -49,7 +46,7 @@ impl Span {
             col = self.column_start,
         );
 
-        match continuation {
+        match &render_options.continuation {
             Some(continuation) => {
                 write!(
                     out,
