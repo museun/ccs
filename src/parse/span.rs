@@ -1,12 +1,6 @@
-use std::borrow::Cow;
-
-use owo_colors::OwoColorize as _;
-
-use crate::{RenderOptions, RenderStyle, Theme};
-
 use super::Text;
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Span {
     pub column_start: usize,
     pub line_start: usize,
@@ -15,58 +9,32 @@ pub struct Span {
 }
 
 impl Span {
-    pub(super) fn render(
-        &self,
-        render_options: &RenderOptions,
-        theme: &Theme,
-        continuation: &Option<Cow<'static, str>>,
-        out: &mut dyn std::io::Write,
-    ) -> std::io::Result<()> {
-        if matches!(render_options.render, RenderStyle::Full) {
-            use owo_colors::OwoColorize as _;
-            self.relocate().try_for_each(|(start, end, text)| {
-                let start = floor_char_boundary(text, start);
-                let end = ceil_char_boundary(text, end);
-
-                let head = &text[..start];
-                let mid = &text[start..end];
-                let tail = &text[end..];
-
-                writeln!(
-                    out,
-                    "  {head}{mid}{tail}",
-                    head = head.color(theme.code),
-                    mid = mid.color(theme.highlight),
-                    tail = tail.color(theme.code)
-                )
-            })?;
-        }
-
-        let location = format!(
-            "{file}:{line}:{col}",
-            file = self.file_name,
+    // TODO `as_hyperlink` (using OSC8 e.g. \x1b]8;;<link>;;\a\n)
+    // TODO _actually_ normalize 'file_name' (should we handle UNCs?) (we can with https://docs.rs/dunce/latest/dunce/)
+    // TODO return this in 2 parts so the 'file' and the 'position' can be handled separately
+    pub fn as_location(&self) -> (String, String) {
+        let file = self.file_name.replace('\\', "/");
+        let pos = format!(
+            ":{line}:{col}",
             line = self.line_start,
-            col = self.column_start,
+            col = self.column_start
         );
-
-        match continuation {
-            Some(continuation) => {
-                write!(
-                    out,
-                    " {cont} {location} ",
-                    cont = continuation.color(theme.continuation),
-                    location = location.color(theme.location)
-                )
-            }
-            None => write!(
-                out,
-                " {location} ",
-                location = location.color(theme.location)
-            ),
-        }
+        (file, pos)
     }
 
-    fn relocate(&self) -> impl Iterator<Item = (usize, usize, &str)> + '_ {
+    // TODO this is missing some of `help` text
+    //
+    // we're getting:
+    //     help: try
+    //     |
+    // 112 -             Some((level, tail)) if tail.is_empty() => Err(Self::Err::raw(
+    // 112 +             Some((level, "")) => Err(Self::Err::raw(
+    //     |
+    //
+    // but we're formatting:
+    //   Some((level, tail)) if tail.is_empty() => Err(Self::Err::raw(
+    //
+    pub fn partition_explain(&self) -> impl Iterator<Item = (&str, &str, &str)> + '_ {
         let mut iter = self.text.iter().enumerate();
         let mut left_pad = 0;
         std::iter::from_fn(move || {
@@ -78,7 +46,6 @@ impl Span {
 
                 if i == 0 {
                     let s = span.text.trim_start();
-                    // TODO use unicode-width here
                     left_pad = span.text.len() - s.len();
                 }
 
@@ -88,14 +55,16 @@ impl Span {
                 let start = str_indices::chars::from_byte_idx(&span.text, start);
                 let end = str_indices::chars::from_byte_idx(&span.text, end);
 
+                let text = &span.text[left_pad..];
+                let start = floor_char_boundary(text, start);
+                let end = ceil_char_boundary(text, end);
+
+                let head = &text[..start];
+                let mid = &text[start..end];
+                let tail = &text[end..];
+
                 // error messages are 1 indexed
-                break Some((
-                    start,
-                    end,
-                    // TODO use unicode-segmentation here
-                    // what does this mean? how would segmentation be applicable here?
-                    &span.text[left_pad..],
-                ));
+                break Some((head, mid, tail));
             }
         })
     }

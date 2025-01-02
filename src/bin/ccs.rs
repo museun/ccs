@@ -1,36 +1,11 @@
-use std::{fs::Metadata, io::BufReader, path::PathBuf};
-
-use anstream::AutoStream;
-
 use ccs::{
-    gather_reasons, Args, Command, Config, Extra, Features, IncludeNotes, Options, Reason,
+    render, Args, Command, Config, Extra, Features, Filter, Filters, IncludeNotes, Mode, Options,
     RenderOptions, RenderStyle, Target, Theme, Tool, Toolchain,
 };
 
-fn try_find_manifest(path: &mut PathBuf) -> anyhow::Result<()> {
-    match path.components().last() {
-        Some(s) if s.as_os_str() == "Cargo.toml" => {}
-        Some(..) => {
-            anyhow::ensure!(path.is_dir(), "a non-manifest file was provided");
-            let tmp = path.join("Cargo.toml");
-            anyhow::ensure!(
-                std::fs::metadata(&tmp)
-                    .ok()
-                    .filter(Metadata::is_file)
-                    .is_some(),
-                "tried to find a Cargo.toml but couldn't find one"
-            );
-            *path = tmp;
-        }
-        _ => anyhow::bail!("you must provide the path to the manifest file (Cargo.toml)"),
-    }
-    Ok(())
-}
+// TODO decide if we should replace \ with / on windows
 
-fn is_nightly_available() -> bool {
-    ccs::find_cargo(Toolchain::Nightly).is_some()
-}
-
+#[allow(clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
     let mut args = Args::parse();
 
@@ -58,18 +33,14 @@ fn main() -> anyhow::Result<()> {
     }
 
     if args.print_default_config {
-        let config = Config::default();
-        println!(
-            "{s}",
-            s = toml::to_string_pretty(&config) //
-                .expect("valid default configuration")
-        );
+        let config = toml::to_string_pretty(&Config::default());
+        let config = config.expect("valid default configuration");
+        println!("{config}");
         std::process::exit(0)
     }
 
     let mut theme = Theme::default();
-
-    let mut continuation = Some(Config::CONTINUATION);
+    let mut continuation = None;
 
     if !args.ignore_config {
         if let Some(path) = Config::get_config_path() {
@@ -94,7 +65,14 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
-            continuation = config.continuation;
+            if config
+                .continuation
+                .as_ref()
+                .filter(|c| !c.is_empty())
+                .is_some()
+            {
+                continuation = config.continuation;
+            }
 
             args.warning.append(&mut config.lints.warn);
             args.allow.append(&mut config.lints.allow);
@@ -113,13 +91,13 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    if args.nightly && !is_nightly_available() {
+    if args.nightly && !ccs::is_nightly_available() {
         eprintln!("rust nightly isn't installed");
         std::process::exit(1)
     }
 
     if let Some(path) = args.path.as_mut() {
-        try_find_manifest(path)?;
+        ccs::try_find_manifest(path)?;
     }
 
     let mut toolchain = args
@@ -155,7 +133,7 @@ fn main() -> anyhow::Result<()> {
         _ => Features::Specific(std::mem::take(&mut args.features)),
     };
 
-    let mut render_options = RenderOptions {
+    let render = RenderOptions {
         render: args
             .explain
             .then_some(RenderStyle::Full)
@@ -166,15 +144,18 @@ fn main() -> anyhow::Result<()> {
             .then_some(IncludeNotes::Yes)
             .unwrap_or_default(),
 
-        ..RenderOptions::default()
+        continuation,
+        delimiter: args.delimiter,
+        new_line: args.new_line,
     };
 
+    let mut filters = Filters::default();
     for filter in std::mem::take(&mut args.filter) {
-        render_options = match filter {
-            ccs::Filter::AllWarnings => render_options.without_warnings(),
-            ccs::Filter::AllErrors => render_options.without_errors(),
-            ccs::Filter::Error(lint) => render_options.without_error(lint),
-            ccs::Filter::Warning(lint) => render_options.without_warning(lint),
+        filters = match filter {
+            Filter::AllWarnings => filters.without_warnings(),
+            Filter::AllErrors => filters.without_errors(),
+            Filter::Error(lint) => filters.without_error(lint),
+            Filter::Warning(lint) => filters.without_warning(lint),
         }
     }
 
@@ -184,6 +165,7 @@ fn main() -> anyhow::Result<()> {
         deny,
         dry_run,
         tool,
+        sort,
         ..
     } = args;
 
@@ -199,32 +181,13 @@ fn main() -> anyhow::Result<()> {
         features,
         dry_run,
         tool,
+        sort,
+        filters,
     };
 
-    let reasons = gather_reasons(BufReader::new(command.build_command(opts)?));
-    let mut out = AutoStream::new(std::io::stdout(), anstream::ColorChoice::Auto).lock();
-
-    reasons
-        .into_iter()
-        .filter(|reason| {
-            if let Reason::CompilerMessage { message } = &reason {
-                !render_options.is_ignored(message.level, message.code.as_ref().map(|c| &*c.code))
-            } else {
-                true
-            }
-        })
-        .enumerate()
-        .try_for_each(|(i, reason)| {
-            use std::io::Write as _;
-            if i > 0 {
-                if let Some(delim) = &args.delimiter.as_ref().filter(|c| !c.is_empty()) {
-                    writeln!(out, "{delim}")?;
-                } else if args.new_line {
-                    writeln!(out)?;
-                }
-            }
-            reason.render(&render_options, &theme, &continuation, &mut out)?;
-            std::io::Result::Ok(())
-        })
-        .map_err(Into::into)
+    match args.mode {
+        Mode::Report => render::display(args.group_by, command, opts, theme, render),
+        Mode::Record => render::record(command, opts),
+        Mode::Replay => render::replay(args.group_by, opts, render, theme),
+    }
 }

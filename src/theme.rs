@@ -13,6 +13,7 @@ pub struct Theme {
     pub highlight: Color,
     pub continuation: Color,
     pub location: Color,
+    pub position: Color,
     pub lint_name: Color,
 }
 
@@ -31,7 +32,8 @@ impl Theme {
         code: Color::WHITE,
         highlight: Color::BRIGHT_BLUE,
         lint_name: Color::MAGENTA,
-        location: Color::BRIGHT_BLACK,
+        location: Color::BRIGHT_BLUE,
+        position: Color::BRIGHT_BLACK,
         message: Color::BRIGHT_WHITE,
         continuation: Color::BRIGHT_BLACK,
     };

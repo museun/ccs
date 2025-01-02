@@ -2,18 +2,19 @@ use std::{borrow::Cow, ffi::OsStr, io::Read, path::PathBuf, process::Stdio};
 
 use anyhow::Context;
 
-use crate::Tool;
+use crate::{args::Sort, options::Filters, Tool};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Command<'a> {
     pub args: Vec<Cow<'a, OsStr>>,
+    pub sink_stderr: bool,
 }
 
 fn os_str(s: &str) -> Cow<'_, OsStr> {
     Cow::Borrowed(OsStr::new(s))
 }
 
-impl<'a> Command<'a> {
+impl Command<'_> {
     pub fn annoying() -> Self {
         Self {
             args: vec![
@@ -22,6 +23,7 @@ impl<'a> Command<'a> {
                 os_str("-W"),
                 os_str("clippy::nursery"),
             ],
+            sink_stderr: false,
         }
     }
 
@@ -35,26 +37,39 @@ impl<'a> Command<'a> {
                 os_str("-W"),
                 os_str("clippy::pedantic"),
             ],
+            sink_stderr: false,
         }
     }
 
     pub const fn default_lints() -> Self {
-        Self { args: vec![] }
+        Self {
+            args: vec![],
+            sink_stderr: false,
+        }
     }
 
-    pub fn build_command(self, opts: Options) -> anyhow::Result<impl Read> {
+    pub fn sink_stderr(mut self) -> Self {
+        self.sink_stderr = true;
+        self
+    }
+
+    pub fn build_command(&self, opts: &Options) -> anyhow::Result<impl Read> {
         let Options {
-            extra,
-            path,
+            ref extra,
+            ref path,
             toolchain,
-            target,
-            features,
+            ref target,
+            ref features,
             dry_run,
             tool,
-        } = opts;
+            ..
+        } = *opts;
 
         let cargo = crate::find_cargo(toolchain).with_context(|| "cannot find cargo via rustup")?;
         let mut cmd = std::process::Command::new(&cargo);
+        if self.sink_stderr {
+            cmd.stderr(Stdio::null());
+        }
         cmd.stdout(Stdio::piped());
 
         cmd.args([Self::as_command(tool), "--message-format=json"]);
@@ -119,15 +134,19 @@ impl<'a> Command<'a> {
                         a.push_str(&c);
                         a
                     });
+
+            let args = args.replace("--message-format=json ", "");
+            let args = args.trim();
+
             let name = cmd.get_program().to_string_lossy();
             println!("{name} {args}");
             std::process::exit(0);
         }
 
         let child = cmd.spawn()?;
-        let stderr = child.stdout.expect("stdout attached to the child process");
+        let stdout = child.stdout.expect("stdout attached to the child process");
 
-        Ok(stderr)
+        Ok(stdout)
     }
 
     const fn as_command(tool: Tool) -> &'static str {
@@ -184,6 +203,8 @@ pub struct Options {
     pub features: Features,
     pub dry_run: bool,
     pub tool: Tool,
+    pub sort: Sort,
+    pub filters: Filters,
 }
 
 #[derive(Default, Copy, Clone, Debug)]
