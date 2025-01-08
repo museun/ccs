@@ -1,10 +1,6 @@
-use std::borrow::Cow;
-
-use crate::{RenderOptions, Theme};
-
 use super::Message;
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 #[serde(tag = "reason", rename_all = "kebab-case")]
 pub enum Reason {
     CompilerMessage {
@@ -18,27 +14,15 @@ pub enum Reason {
 }
 
 impl Reason {
-    pub fn render(
-        &self,
-        render_options: &RenderOptions,
-        theme: &Theme,
-        continuation: &Option<Cow<'static, str>>,
-        out: &mut dyn std::io::Write,
-    ) -> std::io::Result<()> {
-        match self {
-            Self::CompilerMessage { message } => {
-                message.render(render_options, theme, continuation, out)
-            }
-            Self::BuildFinished { success: true } => {
-                // TODO perhaps report this with a flag
-                Ok(())
-            }
-            Self::BuildFinished { success: false } => {
-                // TODO perhaps report this with a flag
-                Ok(())
-            }
-            _ => Ok(()),
-        }
+    pub fn as_message(&self) -> Option<&Message> {
+        let Self::CompilerMessage { message } = self else {
+            return None;
+        };
+        Some(message)
+    }
+
+    pub fn as_locations(&self) -> Option<impl Iterator<Item = (String, String)> + use<'_>> {
+        self.as_message().map(Message::as_locations)
     }
 
     #[inline]

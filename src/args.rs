@@ -27,9 +27,81 @@ impl ValueEnum for Tool {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum Mode {
+    #[default]
+    Report,
+    Record,
+    Replay,
+    Watch,
+}
+
+impl ValueEnum for Mode {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::Report, Self::Record, Self::Replay, Self::Watch]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Self::Report => PossibleValue::new("report"),
+            Self::Record => PossibleValue::new("record"),
+            Self::Replay => PossibleValue::new("replay"),
+            Self::Watch => PossibleValue::new("watch"),
+        })
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum GroupBy {
+    Lint,
+    File,
+    #[default]
+    Default,
+}
+
+impl ValueEnum for GroupBy {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::File, Self::Lint, Self::Default]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Self::File => PossibleValue::new("file"),
+            Self::Lint => PossibleValue::new("lint"),
+            Self::Default => PossibleValue::new("default"),
+        })
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum Sort {
+    File,
+    Lint,
+    #[default]
+    Default,
+}
+
+impl ValueEnum for Sort {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::File, Self::Lint, Self::Default]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Self::File => PossibleValue::new("file"),
+            Self::Lint => PossibleValue::new("lint"),
+            Self::Default => PossibleValue::new("default"),
+        })
+    }
+}
+
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Args {
     pub tool: Tool,
+    pub mode: Mode,
+    pub sort: Sort,
+    pub group_by: GroupBy,
     pub nightly: bool,
     pub explain: bool,
     pub include_notes: bool,
@@ -56,6 +128,7 @@ pub struct Args {
 }
 
 impl Args {
+    #[allow(clippy::too_many_lines)]
     pub fn parse() -> Self {
         let cmd = clap::Command::new(env!("CARGO_PKG_NAME"))
             .version(env!("CARGO_PKG_VERSION"))
@@ -71,6 +144,30 @@ impl Args {
                     .ignore_case(true)
                     .default_value("clippy")
                     .help("specify the tool to use to check for lints"),
+            )
+            .arg(
+                Arg::new("sort")
+                    .short('s')
+                    .long("sort")
+                    .action(ArgAction::Set)
+                    .value_parser(EnumValueParser::<Sort>::new())
+                    .ignore_case(true)
+                    .default_value("default")
+                    .help_heading("sorting results")
+                    .group("sorting")
+                    .help("specifies how the results should be sorted"),
+            )
+            .arg(
+                Arg::new("group_by")
+                    .short('g')
+                    .long("group")
+                    .action(ArgAction::Set)
+                    .value_parser(EnumValueParser::<GroupBy>::new())
+                    .ignore_case(true)
+                    .default_value("default")
+                    .help_heading("sorting results")
+                    .group("sorting")
+                    .help("specifies how the results should be grouped"),
             )
             .arg(
                 Arg::new("nightly")
@@ -132,12 +229,14 @@ impl Args {
                     .help("disable all features"),
             )
             .arg(
+                // TODO rename this to --manifest-path
                 Arg::new("path")
                     .short('p')
                     .long("path")
                     .value_parser(clap::value_parser!(PathBuf))
                     .help("path to a specific Cargo.toml manifest"),
             )
+            // TODO add -p / --pkgid like Cargo uses
             .arg(
                 Arg::new("annoying")
                     .short('y')
@@ -221,16 +320,17 @@ impl Args {
             )
             .arg(
                 Arg::new("delimiter")
+                    .short('d')
                     .long("delimiter")
                     .help_heading("appearance")
-                    .group("interspersed")
+                    // .group("interspersed")
                     .help("append this delimited interspersed with each item"),
             )
             .arg(
                 Arg::new("new_line")
                     .long("nl")
                     .action(ArgAction::SetTrue)
-                    .group("interspersed")
+                    // .group("interspersed")
                     .help_heading("appearance")
                     .help("append a new line interspersed with each item"),
             )
@@ -266,19 +366,32 @@ impl Args {
                     .action(ArgAction::SetTrue)
                     .help_heading("meta")
                     .help("print out the command invocation -- don't actually run it"),
+            )
+            .arg(
+                Arg::new("mode")
+                    .long("mode")
+                    .action(ArgAction::Set)
+                    .value_parser(EnumValueParser::<Mode>::new())
+                    .ignore_case(true)
+                    .default_value("report")
+                    .help("this changes the mode of the program")
+                    .help_heading("development")
+                    .long_help(
+                        "- `watch` reruns the program on file change\n\
+                        - `report` is the default 'one-shot' mode\n\n\
+                        - `record` allows you to `replay` the output later\n\
+                             this allows you to tweak things, or submit bug reports\n\
+                             this'll produce a .ccs.json file in the `cwd`",
+                    ),
             );
 
         let mut matches = cmd.get_matches();
 
-        fn get_many<T>(matches: &mut ArgMatches, key: &str) -> Vec<T>
-        where
-            T: Any + Clone + Send + Sync + 'static,
-        {
-            matches.remove_many(key).into_iter().flatten().collect()
-        }
-
         Self {
             tool: matches.remove_one("tool").unwrap_or_default(),
+            mode: matches.remove_one("mode").unwrap_or_default(),
+            sort: matches.remove_one("sort").unwrap_or_default(),
+            group_by: matches.remove_one("group_by").unwrap_or_default(),
             nightly: matches.get_flag("nightly"),
             explain: matches.get_flag("explain"),
             include_notes: matches.get_flag("include_notes"),
@@ -304,4 +417,11 @@ impl Args {
             dry_run: matches.get_flag("dry_run"),
         }
     }
+}
+
+fn get_many<T>(matches: &mut ArgMatches, key: &str) -> Vec<T>
+where
+    T: Any + Clone + Send + Sync + 'static,
+{
+    matches.remove_many(key).into_iter().flatten().collect()
 }

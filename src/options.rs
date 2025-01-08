@@ -1,4 +1,4 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{borrow::Cow, collections::HashSet, str::FromStr};
 
 use crate::parse::Level;
 
@@ -6,31 +6,39 @@ use crate::parse::Level;
 pub struct RenderOptions {
     pub render: RenderStyle,
     pub include_notes: IncludeNotes,
-    pub filter: HashSet<Filter>,
+    pub continuation: Option<Cow<'static, str>>,
+    pub delimiter: Option<String>,
+    pub new_line: bool,
 }
 
-impl RenderOptions {
+#[derive(Debug, Default)]
+pub struct Filters {
+    filters: HashSet<Filter>,
+}
+
+impl Filters {
     pub fn without_error(mut self, name: impl ToString) -> Self {
-        self.filter.insert(Filter::Error(name.to_string()));
+        self.filters.insert(Filter::Error(name.to_string()));
         self
     }
 
     pub fn without_warning(mut self, name: impl ToString) -> Self {
-        self.filter.insert(Filter::Warning(name.to_string()));
+        self.filters.insert(Filter::Warning(name.to_string()));
         self
     }
+
     pub fn without_errors(mut self) -> Self {
-        self.filter.insert(Filter::AllErrors);
+        self.filters.insert(Filter::AllErrors);
         self
     }
 
     pub fn without_warnings(mut self) -> Self {
-        self.filter.insert(Filter::AllWarnings);
+        self.filters.insert(Filter::AllWarnings);
         self
     }
 
     pub fn is_ignored(&self, level: Level, name: Option<&str>) -> bool {
-        self.filter.iter().any(|f| match f {
+        self.filters.iter().any(|f| match f {
             Filter::Error(lint) if matches!(level, Level::Error) => {
                 if let Some(name) = name {
                     lint.eq_ignore_ascii_case(name)
