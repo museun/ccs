@@ -26,6 +26,19 @@ Options:
   -V, --version
           Print version
 
+sorting results:
+  -s, --sort <sort>
+          specifies how the results should be sorted
+
+          [default: default]
+          [possible values: file, lint, default]
+
+  -g, --group <group_by>
+          specifies how the results should be grouped
+
+          [default: default]
+          [possible values: file, lint, default]
+
 targets:
   -t, --tests
           checks only the test targets
@@ -53,8 +66,8 @@ controlling lints:
           use `clippy::all` and `clippy::nursery` (this requires nightly clippy)
 
   -Y, --more-annoying
-          use `clippy::all` and `clippy::nursery` and `clippy::pedantic` (this requires
-          nightly clippy)
+          use `clippy::all` and `clippy::nursery` and `clippy::pedantic` (this requires nightly
+          clippy)
 
   -f, --filter <filter>
           syntax: (warning|error)=(named_lint|all).
@@ -78,7 +91,7 @@ appearance:
           these can be rather verbose. by default they are hidden,
           use this flag to show them
 
-      --delimiter <delimiter>
+  -d, --delimiter <delimiter>
           append this delimited interspersed with each item
 
       --nl
@@ -96,6 +109,18 @@ meta:
 
       --dry-run
           print out the command invocation -- don't actually run it
+
+development:
+      --mode <mode>
+          - `watch` reruns the program on file change
+          - `report` is the default 'one-shot' mode
+
+          - `record` allows you to `replay` the output later
+          this allows you to tweak things, or submit bug reports
+          this'll produce a .ccs.json file in the `cwd`
+
+          [default: report]
+          [possible values: report, record, replay, watch]
 
 ```
 
