@@ -17,14 +17,14 @@ impl RenderKind {
 
 pub(super) struct Renderer<'a, const KIND: u8 = { RenderKind::Unknown }> {
     options: &'a RenderOptions,
-    theme: Theme,
+    theme: &'a Theme,
     out: &'a mut dyn std::io::Write,
 }
 
 impl<'a> Renderer<'a, { RenderKind::Unknown }> {
     pub(super) fn new(
         options: &'a RenderOptions,
-        theme: Theme,
+        theme: &'a Theme,
         out: &'a mut dyn std::io::Write,
     ) -> Self {
         Renderer {
@@ -301,6 +301,7 @@ impl Renderer<'_, { RenderKind::ByFile }> {
 impl Renderer<'_, { RenderKind::ByLint }> {
     pub(super) fn render(mut self, reasons: &[Reason]) -> std::io::Result<()> {
         let mut map = <BTreeMap<&str, Vec<&Message>>>::default();
+
         for msg in reasons.iter().flat_map(|c| c.as_message()) {
             map.entry(&msg.message).or_default().push(msg);
         }

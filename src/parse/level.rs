@@ -1,4 +1,6 @@
-#[derive(Copy, Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Deserialize, serde::Serialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Level {
     Warning,

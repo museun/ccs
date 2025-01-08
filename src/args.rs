@@ -33,11 +33,12 @@ pub enum Mode {
     Report,
     Record,
     Replay,
+    Watch,
 }
 
 impl ValueEnum for Mode {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Report, Self::Record, Self::Replay]
+        &[Self::Report, Self::Record, Self::Replay, Self::Watch]
     }
 
     fn to_possible_value(&self) -> Option<PossibleValue> {
@@ -45,6 +46,7 @@ impl ValueEnum for Mode {
             Self::Report => PossibleValue::new("report"),
             Self::Record => PossibleValue::new("record"),
             Self::Replay => PossibleValue::new("replay"),
+            Self::Watch => PossibleValue::new("watch"),
         })
     }
 }
@@ -372,12 +374,14 @@ impl Args {
                     .value_parser(EnumValueParser::<Mode>::new())
                     .ignore_case(true)
                     .default_value("report")
-                    .help("allows you to `record` the output and `replay` it later")
+                    .help("this changes the mode of the program")
                     .help_heading("development")
                     .long_help(
-                        "allows you to `record` the output and `replay` it later\n\n\
-                    this allows you to tweak things, or submit bug reports\n\
-                    this'll produce a .ccs.json file in the `cwd`",
+                        "- `watch` reruns the program on file change\n\
+                        - `report` is the default 'one-shot' mode\n\n\
+                        - `record` allows you to `replay` the output later\n\
+                             this allows you to tweak things, or submit bug reports\n\
+                             this'll produce a .ccs.json file in the `cwd`",
                     ),
             );
 

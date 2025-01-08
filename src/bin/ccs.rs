@@ -189,5 +189,6 @@ fn main() -> anyhow::Result<()> {
         Mode::Report => render::display(args.group_by, command, opts, theme, render),
         Mode::Record => render::record(command, opts),
         Mode::Replay => render::replay(args.group_by, opts, render, theme),
+        Mode::Watch => render::watch(args.group_by, command, opts, theme, render),
     }
 }
